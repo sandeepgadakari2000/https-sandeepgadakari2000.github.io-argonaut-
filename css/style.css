@@ -1,0 +1,540 @@
+/* ═══════════════════════════════════════════════════════════
+   ARGONAUT — Design System v7 · “The Voyage”
+   Ported from the Argonaut Landing (Standalone) design:
+   parchment #F9F9F6 · espresso ink #2B2118 · bronze #B87333
+   dark bronze #8B5A2B · terracotta #E2725B · tan #D4A373
+   Display serif: Cinzel · UI sans: Inter (both shipped locally
+   in /fonts so the app renders identically offline on file://).
+   All theme decisions live here — JS templates consume the
+   semantic variables below and contain no color literals.
+   ═══════════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap');
+
+/* Cinzel & Inter are variable fonts — one file covers all weights */
+@font-face{
+  font-family:'Cinzel';font-style:normal;font-weight:400 900;font-display:swap;
+  src:url('../fonts/cinzel-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face{
+  font-family:'Cinzel';font-style:normal;font-weight:400 900;font-display:swap;
+  src:url('../fonts/cinzel-latin-ext.woff2') format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face{
+  font-family:'Inter';font-style:normal;font-weight:400 700;font-display:swap;
+  src:url('../fonts/inter-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face{
+  font-family:'Inter';font-style:normal;font-weight:400 700;font-display:swap;
+  src:url('../fonts/inter-latin-ext.woff2') format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+:root{
+  /* parchment & surfaces */
+  --bg0:#F9F9F6;                       /* parchment */
+  --bg1:#F2EFE7;                       /* warm ivory */
+  --marble:#FCFBF8;
+  --surface:rgba(255,255,255,.6);
+  --surface-2:rgba(255,255,255,.45);
+  --border:rgba(184,115,51,.20);       /* bronze hairline */
+  --border-strong:rgba(184,115,51,.34);
+  /* ink */
+  --ink:#2B2118;                       /* deep espresso */
+  --ink-2:#5C5044;                     /* warm umber */
+  --ink-3:#8A7A66;                     /* muted sepia */
+  /* metals & clay */
+  --accent:#B87333;                    /* bronze */
+  --accent-2:#8B5A2B;                  /* dark bronze */
+  --gold:#D4A373;                      /* tan gold */
+  --gold-ink:#8B5A2B;
+  /* status (earth-toned, CVD-validated on light surface) */
+  --good:#5C7F5F;                      /* sage laurel (landing #7A9E7E, deepened for text) */
+  --warn:#B3892E;                      /* ochre */
+  --serious:#9C4A10;                   /* sienna clay */
+  --crit:#C0442E;                      /* terracotta red (landing #E2725B, deepened for text) */
+  --crit-strong:#A03A27;
+  /* semantic tints (JS templates reference these) */
+  --accent-bg:rgba(184,115,51,.07);
+  --accent-bg-strong:rgba(184,115,51,.13);
+  --accent-border:rgba(184,115,51,.25);
+  --accent-border-strong:rgba(184,115,51,.45);
+  --accent-text:#8B5A2B;
+  --accent-faint:rgba(184,115,51,.38);
+  --good-bg:rgba(122,158,126,.09);
+  --good-bg-strong:rgba(122,158,126,.16);
+  --good-border:rgba(92,127,95,.34);
+  --crit-bg:rgba(226,114,91,.08);
+  --crit-border:rgba(192,68,46,.3);
+  --hl-bg:rgba(212,163,115,.15);       /* highlight (dup banner, gold tags) */
+  --hl-border:rgba(212,163,115,.5);
+  --hl-ink:#8B5A2B;
+  --neutral-bg:rgba(184,115,51,.06);
+  --neutral-border:rgba(184,115,51,.16);
+  --row-bg:rgba(255,255,255,.55);
+  --scanline:rgba(184,115,51,.75);
+  /* geometry & motion */
+  --radius:14px;
+  --radius-sm:11px;
+  --ease:cubic-bezier(.22,.68,.28,1);  /* buttery premium easing */
+  /* type */
+  --font-display:'Cinzel',Georgia,serif;
+  --font-body:'Inter',-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  /* glass — landing vitrine */
+  --glass-bg:linear-gradient(168deg,rgba(255,255,255,.72),rgba(255,255,255,.5));
+  --glass-shadow:0 10px 34px rgba(43,33,24,.08),0 2px 8px rgba(43,33,24,.04),inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  min-height:100vh;
+  background:var(--bg0);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:15px;
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* parchment wall — fixed backdrop with the landing's warm radial glows */
+body::before{
+  content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(65vw 65vw at 92% -8%,rgba(212,163,115,.16),transparent 70%),
+    radial-gradient(55vw 55vw at 0% 110%,rgba(226,114,91,.10),transparent 70%),
+    linear-gradient(168deg,var(--marble) 0%,var(--bg0) 48%,var(--bg1) 100%);
+}
+/* Argus lattice — faint field of watchful nodes on the parchment */
+body::after{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(circle,rgba(184,115,51,.09) 1px,transparent 1.6px);
+  background-size:44px 44px;
+}
+::selection{background:rgba(184,115,51,.25)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(184,115,51,.3);border-radius:8px;border:2px solid var(--bg0)}
+a{color:#8B5A2B;text-decoration:none;transition:color .25s var(--ease)}
+a:hover{color:#B87333}
+button{font-family:inherit}
+input,textarea,select{font-family:inherit;color:var(--ink)}
+
+/* ── Bronze light-leaks across the parchment ───────────── */
+#fx{position:fixed;inset:0;z-index:0;pointer-events:none}
+.aurora{position:fixed;border-radius:50%;pointer-events:none;z-index:0;will-change:transform;
+  mix-blend-mode:multiply;animation:drift 34s var(--ease) infinite alternate}
+.aurora.a1{width:820px;height:820px;top:-28%;left:-18%;
+  background:radial-gradient(circle,rgba(212,163,115,.14) 0%,rgba(212,163,115,.05) 42%,transparent 66%)}
+.aurora.a2{width:680px;height:680px;bottom:-26%;right:-14%;
+  background:radial-gradient(circle,rgba(226,114,91,.10) 0%,rgba(226,114,91,.04) 45%,transparent 66%);animation-delay:-12s}
+.aurora.a3{width:560px;height:560px;top:34%;left:52%;
+  background:radial-gradient(circle,rgba(184,115,51,.09) 0%,rgba(184,115,51,.03) 45%,transparent 66%);animation-delay:-22s}
+@keyframes drift{
+  0%{transform:translate(0,0) scale(1)}
+  100%{transform:translate(70px,-46px) scale(1.1)}
+}
+
+/* ── Greek meander (key pattern) ornament ─────────────── */
+.meander{
+  height:12px;margin:0 auto;max-width:280px;opacity:.35;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cpath d='M0 11 L0 1 L18 1 L18 7 L8 7 L8 4 L14 4' fill='none' stroke='%23B87333' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-repeat:repeat-x;background-position:center;
+}
+
+/* ── Glass primitives — landing vitrines ───────────────── */
+.glass{
+  position:relative;
+  background:var(--glass-bg);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  backdrop-filter:blur(18px) saturate(1.3);
+  -webkit-backdrop-filter:blur(18px) saturate(1.3);
+  box-shadow:var(--glass-shadow);
+  transition:border-color .35s var(--ease),box-shadow .35s var(--ease),transform .35s var(--ease);
+}
+.glass::before{
+  content:'';position:absolute;inset:0 0 auto 0;height:44%;
+  border-radius:var(--radius) var(--radius) 44% 44%;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),transparent);
+  pointer-events:none;
+}
+.glass-flat{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+
+/* ── Layout ────────────────────────────────────────────── */
+.container{max-width:1180px;margin:0 auto;padding:0 22px;position:relative;z-index:2}
+main#view{position:relative;z-index:2;padding-top:104px;min-height:calc(100vh - 120px)}
+section{margin-bottom:60px}
+
+/* ── Navbar — landing chrome: frosted white, bronze rule ─ */
+#navbar{
+  position:fixed;top:20px;left:24px;right:24px;z-index:50;
+  display:flex;align-items:center;gap:14px;
+  padding:11px 22px;border-radius:14px;
+  background:rgba(255,255,255,.6);
+  border:1px solid rgba(184,115,51,.22);
+  backdrop-filter:blur(18px) saturate(1.3);
+  -webkit-backdrop-filter:blur(18px) saturate(1.3);
+  box-shadow:0 10px 34px rgba(43,33,24,.08);
+}
+.nav-logo{display:flex;align-items:center;gap:11px;margin-right:8px;cursor:pointer;flex-shrink:0}
+.nav-logo svg{flex-shrink:0;overflow:visible}
+.nav-logo .brand{
+  font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.14em;
+  color:var(--ink);
+}
+.nav-logo .beta{font-size:9px;font-weight:600;letter-spacing:.2em;color:#B87333;
+  border:1px solid rgba(184,115,51,.45);
+  padding:2px 6px;border-radius:4px;margin-left:2px;font-family:var(--font-body)}
+.nav-links{display:flex;gap:22px;flex:1;overflow-x:auto;scrollbar-width:none;justify-content:center}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-link{
+  padding:6px 0;border:none;background:none;cursor:pointer;white-space:nowrap;
+  font-family:var(--font-body);font-size:11px;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--ink-3);transition:color .3s var(--ease);
+}
+.nav-link:hover{color:var(--ink)}
+.nav-link.on{color:var(--ink)}
+.nav-actions{display:flex;gap:10px;align-items:center;flex-shrink:0}
+.btn-panic{
+  display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:8px;cursor:pointer;
+  font-size:10.5px;font-weight:600;color:var(--crit);letter-spacing:.14em;text-transform:uppercase;
+  background:rgba(226,114,91,.10);border:1px solid rgba(192,68,46,.35);transition:all .3s var(--ease)
+}
+.btn-panic:hover{background:rgba(226,114,91,.18);box-shadow:0 4px 16px rgba(192,68,46,.2)}
+.btn-icon{
+  width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.7);border:1px solid var(--border);cursor:pointer;
+  color:var(--ink-2);font-size:15px;transition:all .3s var(--ease)
+}
+.btn-icon:hover{color:var(--ink);border-color:var(--border-strong);box-shadow:0 3px 12px rgba(43,33,24,.1)}
+
+/* ── Buttons — landing bronze relief ───────────────────── */
+.btn-primary{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 26px;border:none;border-radius:8px;cursor:pointer;
+  font-family:var(--font-body);font-size:12px;font-weight:600;color:#F9F9F6;
+  letter-spacing:.14em;text-transform:uppercase;
+  background:linear-gradient(135deg,#B87333,#8B5A2B);
+  box-shadow:0 6px 18px rgba(184,115,51,.3);
+  transition:transform .2s var(--ease),box-shadow .2s var(--ease);
+}
+.btn-primary:hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 24px rgba(184,115,51,.42);
+}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-ghost{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 22px;border-radius:8px;cursor:pointer;
+  font-size:12px;font-weight:600;color:#8B5A2B;letter-spacing:.14em;text-transform:uppercase;
+  background:rgba(255,255,255,.55);border:1px solid rgba(184,115,51,.4);
+  backdrop-filter:blur(10px);transition:background .2s var(--ease),border-color .2s var(--ease),transform .2s var(--ease)
+}
+.btn-ghost:hover{
+  background:rgba(255,255,255,.85);border-color:#B87333;transform:translateY(-1px)
+}
+.btn-sm{padding:9px 15px;font-size:11px;border-radius:7px}
+.btn-danger-ghost{
+  display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:8px;cursor:pointer;
+  font-size:11.5px;font-weight:600;color:var(--crit);letter-spacing:.1em;text-transform:uppercase;
+  background:var(--crit-bg);border:1px solid var(--crit-border);transition:all .3s var(--ease)
+}
+.btn-danger-ghost:hover{background:rgba(226,114,91,.16)}
+
+/* ── Typography — exhibit inscriptions ─────────────────── */
+.eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:11px;font-weight:600;letter-spacing:.34em;text-transform:uppercase;color:#B87333;
+  margin-bottom:14px
+}
+.eyebrow::before{content:'';width:26px;height:1px;background:linear-gradient(90deg,var(--gold),transparent)}
+h1.hero-title{
+  font-family:var(--font-display);font-weight:700;
+  font-size:clamp(38px,5.2vw,72px);line-height:1.05;letter-spacing:0;margin-bottom:22px;color:var(--ink)
+}
+h1 .grad{background:linear-gradient(94deg,#8B5A2B 0%,#B87333 55%,#8B5A2B 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+h2.sec-title{font-family:var(--font-display);font-weight:700;font-size:clamp(24px,3vw,36px);
+  letter-spacing:0;margin-bottom:10px;color:var(--ink)}
+.sec-sub{color:var(--ink-2);font-size:15px;max-width:660px;line-height:1.75}
+.mono{font-family:var(--font-mono)}
+
+/* ── Chips / badges — gallery labels ───────────────────── */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:6px;
+  font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;
+  font-family:var(--font-body)}
+.chip.good{color:var(--good);background:rgba(122,158,126,.12);border:1px solid rgba(92,127,95,.32)}
+.chip.warn{color:var(--warn);background:rgba(179,137,46,.1);border:1px solid rgba(179,137,46,.32)}
+.chip.serious{color:var(--serious);background:rgba(156,74,16,.08);border:1px solid rgba(156,74,16,.3)}
+.chip.crit{color:var(--crit);background:rgba(226,114,91,.1);border:1px solid rgba(192,68,46,.3)}
+.chip.neutral{color:var(--ink-2);background:rgba(184,115,51,.07);border:1px solid rgba(184,115,51,.22)}
+.chip.accent{color:var(--accent-text);background:rgba(184,115,51,.09);border:1px solid rgba(184,115,51,.3)}
+.chip.cyan{color:var(--gold-ink);background:rgba(212,163,115,.16);border:1px solid rgba(212,163,115,.5)}
+.badge-verified{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+  color:var(--gold-ink);background:rgba(212,163,115,.18);border:1px solid rgba(212,163,115,.55);
+  padding:2px 9px;border-radius:20px}
+
+/* ── Cards / grids ─────────────────────────────────────── */
+.card-pad{padding:28px}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.grid-4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.feature-card{padding:28px}
+.feature-card:hover{transform:translateY(-5px);border-color:rgba(184,115,51,.42);
+  box-shadow:0 24px 54px rgba(43,33,24,.12),0 2px 8px rgba(43,33,24,.05),inset 0 1px 0 rgba(255,255,255,.9)}
+.feature-card .f-icon{
+  width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:21px;margin-bottom:16px;
+  background:linear-gradient(140deg,rgba(212,163,115,.2),rgba(184,115,51,.08));
+  border:1px solid rgba(184,115,51,.3);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7)
+}
+.feature-card h3{font-family:var(--font-display);font-size:17px;font-weight:700;margin-bottom:8px;
+  letter-spacing:.02em;color:var(--ink)}
+.feature-card p{font-size:13.5px;color:var(--ink-2);line-height:1.68}
+
+/* ── Stat tiles — plinth numbers ───────────────────────── */
+.stat-tile{padding:22px 24px}
+.stat-tile .s-label{font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:8px}
+.stat-tile .s-value{font-family:var(--font-display);font-size:32px;font-weight:700;
+  letter-spacing:.02em;line-height:1.05;color:var(--ink)}
+.stat-tile .s-hint{font-size:12px;color:var(--ink-3);margin-top:6px}
+
+/* ── Inputs / forms — parchment fields ─────────────────── */
+textarea.input-area{
+  width:100%;min-height:190px;background:rgba(255,255,255,.8);
+  border:1px solid var(--border-strong);border-radius:12px;padding:15px 17px;
+  color:var(--ink);font-size:14px;line-height:1.65;resize:vertical;outline:none;
+  transition:border-color .3s var(--ease),box-shadow .3s var(--ease)
+}
+textarea.input-area:focus{border-color:rgba(184,115,51,.6);box-shadow:0 0 0 3px rgba(212,163,115,.18)}
+textarea.input-area::placeholder,.input-text::placeholder{color:var(--ink-3)}
+.input-text{
+  width:100%;background:rgba(255,255,255,.8);border:1px solid var(--border-strong);border-radius:10px;
+  padding:11px 14px;color:var(--ink);font-size:13.5px;outline:none;
+  transition:border-color .3s var(--ease),box-shadow .3s var(--ease)
+}
+.input-text:focus{border-color:rgba(184,115,51,.6);box-shadow:0 0 0 3px rgba(212,163,115,.18)}
+select.input-text{appearance:none;cursor:pointer}
+label.f-label{display:block;font-size:10.5px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 6px 2px}
+
+/* ── Tabs ──────────────────────────────────────────────── */
+.tabs{display:flex;gap:6px;background:rgba(184,115,51,.08);border-radius:11px;padding:5px;
+  margin-bottom:20px;border:1px solid var(--border)}
+.tab{flex:1;padding:10px 12px;border-radius:8px;border:none;cursor:pointer;
+  font-size:12px;font-weight:600;letter-spacing:.06em;background:transparent;color:var(--ink-2);
+  transition:all .3s var(--ease);white-space:nowrap}
+.tab.on{background:#fff;color:var(--accent-text);
+  box-shadow:0 3px 10px rgba(43,33,24,.1),inset 0 1px 0 rgba(255,255,255,1)}
+
+/* ── Dropzone ──────────────────────────────────────────── */
+.dropzone{border:2px dashed rgba(184,115,51,.34);border-radius:14px;padding:46px 24px;
+  text-align:center;cursor:pointer;transition:all .3s var(--ease);background:rgba(255,255,255,.5)}
+.dropzone:hover,.dropzone.over{border-color:rgba(184,115,51,.62);background:rgba(212,163,115,.1)}
+
+/* ── Exhibit labels inside cards ───────────────────────── */
+.card-label{font-size:10.5px;font-weight:600;letter-spacing:.22em;color:var(--ink-3);
+  text-transform:uppercase;margin-bottom:13px;display:flex;align-items:center;gap:8px}
+
+/* ── Flag rows ─────────────────────────────────────────── */
+.flag-row{display:flex;gap:12px;align-items:flex-start;border-radius:10px;padding:12px 15px;margin-bottom:8px}
+.flag-row:last-child{margin-bottom:0}
+.flag-row .fr-title{font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:2px}
+.flag-row .fr-sub{font-size:12.5px;color:var(--ink-2);line-height:1.55}
+
+/* ── Tables — catalogue plaques ────────────────────────── */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;padding:10px 12px;font-size:10px;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--border-strong)}
+.tbl td{padding:11px 12px;border-bottom:1px solid var(--border);color:var(--ink-2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl td:first-child{color:var(--ink);font-weight:600}
+.tbl-wrap{overflow-x:auto}
+
+/* ── Modals — vitrine over dimmed hall ─────────────────── */
+.modal-backdrop{
+  position:fixed;inset:0;z-index:100;background:rgba(43,33,24,.35);
+  backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  animation:fadein .25s var(--ease)
+}
+.modal{width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:32px;
+  animation:pop .35s var(--ease)}
+.modal h3{font-family:var(--font-display);font-size:22px;font-weight:700;margin-bottom:6px;
+  letter-spacing:.02em;color:var(--ink)}
+.modal .m-sub{font-size:13.5px;color:var(--ink-2);margin-bottom:20px;line-height:1.68}
+@keyframes pop{from{opacity:0;transform:scale(.95) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* ── Motion ────────────────────────────────────────────── */
+@keyframes fadeup{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fadeup{animation:fadeup .55s var(--ease) both}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:13px;height:13px;border:2px solid rgba(184,115,51,.25);border-top-color:var(--accent);
+  border-radius:50%;display:inline-block;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes scanline{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.pulse-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7A9E7E;
+  box-shadow:0 0 0 3px rgba(122,158,126,.18);animation:pulse 2s var(--ease) infinite}
+/* landing telemetry blink + hint float */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes hintFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+/* ── Charts ────────────────────────────────────────────── */
+.chart-tip{
+  position:fixed;z-index:200;pointer-events:none;padding:8px 12px;border-radius:8px;
+  background:rgba(255,255,255,.97);border:1px solid var(--border-strong);
+  font-size:12px;color:var(--ink);box-shadow:0 10px 28px rgba(43,33,24,.18);
+  opacity:0;transition:opacity .18s var(--ease);white-space:nowrap
+}
+.chart-tip .tip-label{color:var(--ink-3);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+.hbar-row{display:grid;grid-template-columns:132px 1fr 46px;gap:10px;align-items:center;margin-bottom:9px}
+.hbar-row .hb-label{font-size:12.5px;color:var(--ink-2);font-weight:500;text-align:right;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbar-row .hb-track{height:14px;background:rgba(184,115,51,.1);border-radius:5px;overflow:hidden;cursor:default}
+.hbar-row .hb-fill{height:100%;border-radius:0 4px 4px 0;transition:width .8s var(--ease)}
+.hbar-row .hb-val{font-family:var(--font-mono);font-size:12px;color:var(--ink-2)}
+.chart-empty{
+  padding:34px 20px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.7;
+  border:1px dashed var(--neutral-border);border-radius:12px;background:rgba(255,255,255,.4)
+}
+.chart-empty b{color:var(--ink-2)}
+
+/* ── Learn hub ─────────────────────────────────────────── */
+.learn-grid{align-items:start}
+.learn-card{padding:0;overflow:hidden}
+.learn-card:hover{border-color:rgba(212,163,115,.55)}
+.learn-head{display:flex;align-items:center;gap:13px;width:100%;padding:20px 24px;background:transparent;
+  border:none;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink)}
+.learn-ico{font-size:24px;line-height:1}
+.learn-title{font-family:var(--font-display);font-weight:700;font-size:15.5px;flex:1;color:var(--ink)}
+.learn-chev{flex-shrink:0;color:var(--ink-3);transition:transform .4s var(--ease)}
+.learn-card.open .learn-chev{transform:rotate(180deg);color:var(--accent-text)}
+.learn-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease)}
+.learn-card.open .learn-body{grid-template-rows:1fr}
+.learn-body-inner{min-height:0;overflow:hidden}
+.learn-body-pad{padding:0 24px 22px}
+.quiz-opt{display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:9px;border-radius:10px;
+  background:rgba(255,255,255,.72);border:1px solid var(--border);color:var(--ink-2);
+  font-size:13.5px;cursor:pointer;transition:all .25s var(--ease)}
+.quiz-opt:hover{border-color:rgba(184,115,51,.45);color:var(--ink);background:#fff}
+.quiz-opt.correct{border-color:rgba(92,127,95,.55);background:rgba(122,158,126,.12);color:var(--good)}
+.quiz-opt.wrong{border-color:rgba(192,68,46,.5);background:rgba(226,114,91,.09);color:var(--crit)}
+
+/* ── Pricing — exhibition tiers ────────────────────────── */
+.price-card{padding:32px;display:flex;flex-direction:column}
+.price-card.featured{border-color:rgba(184,115,51,.55);
+  box-shadow:0 24px 60px rgba(184,115,51,.18),inset 0 1px 0 rgba(255,255,255,.9)}
+.price-card .p-name{font-family:var(--font-body);font-size:11px;font-weight:600;
+  letter-spacing:.26em;margin-bottom:8px;color:var(--accent-text)}
+.price-card .p-price{font-family:var(--font-display);font-size:40px;font-weight:700;
+  letter-spacing:0;color:var(--ink)}
+.price-card .p-per{font-size:12.5px;color:var(--ink-3)}
+.price-card ul{list-style:none;margin:20px 0 24px;flex:1}
+.price-card li{font-size:13.5px;color:var(--ink-2);padding:6px 0;display:flex;gap:9px;align-items:flex-start}
+.price-card li::before{content:'✓';color:var(--good);font-weight:700;flex-shrink:0}
+
+/* ── Footer — gallery plaque ───────────────────────────── */
+footer{position:relative;z-index:2;border-top:1px solid var(--border-strong);
+  margin-top:44px;padding:38px 0 44px;
+  background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.5));
+  backdrop-filter:blur(10px)}
+footer::before{content:'';display:block;position:absolute;top:3px;left:0;right:0;height:1px;
+  background:var(--border)}
+footer .f-disc{font-size:11.5px;color:var(--ink-2);line-height:1.75;max-width:860px}
+footer .f-disc b{color:var(--ink);font-weight:700;letter-spacing:.4px}
+
+/* ── Toast ─────────────────────────────────────────────── */
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);z-index:300;
+  padding:12px 22px;border-radius:11px;font-size:13.5px;font-weight:600;color:var(--ink);
+  background:rgba(255,255,255,.96);border:1px solid var(--border-strong);
+  backdrop-filter:blur(16px);box-shadow:0 16px 44px rgba(43,33,24,.2);
+  opacity:0;transition:all .4s var(--ease);pointer-events:none;max-width:min(520px,90vw);text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Brand motifs ──────────────────────────────────────── */
+.ship-watermark{display:none}
+.argus-seal{
+  position:absolute;left:-90px;bottom:-40px;width:340px;height:340px;border-radius:50%;
+  pointer-events:none;opacity:.45;z-index:-1;
+  background:repeating-radial-gradient(circle at center,
+    rgba(184,115,51,.14) 0 1px,transparent 1px 28px);
+  -webkit-mask-image:radial-gradient(circle,black 30%,transparent 72%);
+  mask-image:radial-gradient(circle,black 30%,transparent 72%);
+}
+
+/* ═══ LANDING — “The Voyage” full-viewport experience ═══
+   Shown on the Home route. The particle canvas, exhibit
+   panels, HUD, dot rail and hint are inline-styled in
+   index.html (ported 1:1 from the landing design); these
+   rules handle visibility, layering and responsiveness. */
+#landing{position:fixed;inset:0;z-index:5;overflow:hidden;display:none}
+body.landing-on{overflow:hidden}
+body.landing-on #landing{display:block}
+body.landing-on main#view,
+body.landing-on footer,
+body.landing-on #fx,
+body.landing-on .aurora{display:none}
+/* ambient mode — app routes keep the voyage canvas as a fixed,
+   click-through background; all landing chrome is hidden and the
+   page's own content (z-index 2+) scrolls above it. */
+body.landing-ambient #landing{display:block;z-index:0;pointer-events:none}
+body.landing-ambient #landing section[data-panel],
+body.landing-ambient #landing [data-chrome="hud"],
+body.landing-ambient #landing [data-chrome="rail"],
+body.landing-ambient #landing [data-chrome="hint"]{display:none!important}
+body.landing-ambient #fx,
+body.landing-ambient .aurora{display:none}
+#landing .el{will-change:transform,opacity}
+#landing [data-panel]{visibility:hidden}
+#landing [data-panel].panel-ready{visibility:visible}
+/* the fake-input scanner bar on panel 3 */
+#landing-scan-input{
+  flex:1;min-width:0;border:none;outline:none;background:transparent;
+  padding:12px 14px;font-size:13px;color:var(--ink);font-family:var(--font-body)
+}
+#landing-scan-input::placeholder{color:var(--ink-3);font-style:italic}
+@media (max-height:880px){
+  #landing [data-chrome="hint"]{display:none!important}
+  #landing [data-chrome="hud"]{left:auto!important;right:28px!important;width:250px!important}
+}
+@media (max-height:640px){
+  #landing [data-chrome="hud"]{display:none!important}
+}
+@media (max-width:900px){
+  #landing [data-chrome="hud"]{display:none!important}
+  #landing section[data-panel]{left:24px!important;right:24px!important;max-width:none!important}
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media(max-width:1080px){
+  .nav-links{gap:14px}
+}
+@media(max-width:960px){
+  #navbar{flex-wrap:wrap;padding:10px 14px}
+  .nav-links{order:3;flex:0 0 100%;width:100%;margin-top:6px;justify-content:flex-start}
+  main#view{padding-top:140px}
+  h1.hero-title{font-size:clamp(32px,9vw,48px)}
+  .hbar-row{grid-template-columns:88px 1fr 40px}
+}
+@media(max-width:520px){
+  #navbar{top:12px;left:12px;right:12px}
+  .card-pad,.modal{padding:20px}
+  .container{padding:0 14px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}

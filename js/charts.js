@@ -1,0 +1,152 @@
+/* ═══════════════════════════════════════════════════════════
+   ARGONAUT — Chart Components (SVG, dependency-free)
+   Museum palette: earth-toned verdict dial, bronze trend line,
+   sepia sequential ramp on marble vitrines.
+   ═══════════════════════════════════════════════════════════ */
+window.Argus = window.Argus || {};
+
+Argus.charts = (function () {
+
+  /* ── Shared tooltip ─────────────────────────────────── */
+  let tipEl = null;
+  function tip() {
+    if (!tipEl) {
+      tipEl = document.createElement("div");
+      tipEl.className = "chart-tip";
+      document.body.appendChild(tipEl);
+    }
+    return tipEl;
+  }
+  function showTip(x, y, html) {
+    const t = tip();
+    t.innerHTML = html;
+    t.style.left = Math.min(x + 14, window.innerWidth - 180) + "px";
+    t.style.top = (y - 14) + "px";
+    t.style.opacity = "1";
+  }
+  function hideTip() { if (tipEl) tipEl.style.opacity = "0"; }
+
+  /* ── Trust score gauge ──────────────────────────────── */
+  function gauge(score) {
+    const s = Argus.scoreStyle(score);
+    const r = 64, cx = 88, cy = 76;
+    const pct = Math.min(100, Math.max(0, score));
+    const rad = (180 - (pct / 100) * 180) * (Math.PI / 180);
+    const ex = cx + r * Math.cos(rad), ey = cy - r * Math.sin(rad);
+    const nx = cx + 50 * Math.cos(rad), ny = cy - 50 * Math.sin(rad);
+    const fill = pct >= 100
+      ? `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`
+      : `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+    return `
+    <svg width="176" height="108" viewBox="0 0 176 108" style="flex-shrink:0">
+      <defs>
+        <linearGradient id="ag-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#a03c2c"/><stop offset="32%" stop-color="#9c4a10"/>
+          <stop offset="60%" stop-color="#b3892e"/><stop offset="100%" stop-color="#4d6a38"/>
+        </linearGradient>
+      </defs>
+      <path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}" fill="none"
+        stroke="rgba(140,106,63,0.18)" stroke-width="11" stroke-linecap="round"/>
+      ${pct > 0 ? `<path d="${fill}" fill="none" stroke="url(#ag-grad)" stroke-width="11"
+        stroke-linecap="round"/>` : ""}
+      <line x1="${cx}" y1="${cy}" x2="${nx.toFixed(2)}" y2="${ny.toFixed(2)}"
+        stroke="${s.color}" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="5" fill="${s.color}"/>
+      <circle cx="${cx}" cy="${cy}" r="2" fill="#fbf9f5"/>
+      <text x="${cx - r - 4}" y="${cy + 16}" text-anchor="end" fill="rgba(110,92,72,0.55)" font-size="9" font-family="Inter,sans-serif">FAKE</text>
+      <text x="${cx + r + 4}" y="${cy + 16}" text-anchor="start" fill="rgba(110,92,72,0.55)" font-size="9" font-family="Inter,sans-serif">REAL</text>
+      <text x="${cx}" y="${cy + 17}" text-anchor="middle" fill="${s.color}" font-size="27"
+        font-family="'JetBrains Mono',monospace" font-weight="700">${score}</text>
+      <text x="${cx}" y="${cy + 31}" text-anchor="middle" fill="rgba(110,92,72,0.6)" font-size="8"
+        font-family="Inter,sans-serif" letter-spacing="2.5">TRUST SCORE</text>
+    </svg>`;
+  }
+
+  /* ── Sparkline / area chart with crosshair tooltip ──── */
+  function sparkline(container, points, opts = {}) {
+    const W = opts.width || container.clientWidth || 520, H = opts.height || 150;
+    const padL = 8, padR = 46, padT = 14, padB = 22;
+    const vals = points.map(p => p.value);
+    const vMin = Math.min(...vals), vMax = Math.max(...vals);
+    const span = (vMax - vMin) || 1;
+    const px = i => padL + (i / (points.length - 1)) * (W - padL - padR);
+    const py = v => padT + (1 - (v - vMin) / span) * (H - padT - padB);
+
+    let line = "";
+    points.forEach((p, i) => {
+      line += `${i === 0 ? "M" : "L"}${px(i).toFixed(1)},${py(p.value).toFixed(1)} `;
+    });
+    const area = line + `L${px(points.length - 1).toFixed(1)},${H - padB} L${padL},${H - padB} Z`;
+    const last = points[points.length - 1];
+
+    container.innerHTML = `
+    <svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block;overflow:visible">
+      <defs>
+        <linearGradient id="ag-area" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(154,107,49,0.22)"/>
+          <stop offset="100%" stop-color="rgba(154,107,49,0)"/>
+        </linearGradient>
+      </defs>
+      <line x1="${padL}" y1="${H - padB}" x2="${W - padR}" y2="${H - padB}" stroke="rgba(140,106,63,0.25)" stroke-width="1"/>
+      <path d="${area}" fill="url(#ag-area)"/>
+      <path d="${line}" fill="none" stroke="#8c5f2a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${px(points.length - 1)}" cy="${py(last.value)}" r="4" fill="#8c5f2a" stroke="#fbf9f5" stroke-width="2"/>
+      <text x="${px(points.length - 1) + 9}" y="${py(last.value) + 4}" fill="#6d5c48" font-size="12"
+        font-family="'JetBrains Mono',monospace" font-weight="700">${last.value}</text>
+      <text x="${padL}" y="${H - 6}" fill="rgba(110,92,72,0.6)" font-size="10" font-family="Inter,sans-serif">${points[0].label}</text>
+      <text x="${W - padR}" y="${H - 6}" text-anchor="end" fill="rgba(110,92,72,0.6)" font-size="10" font-family="Inter,sans-serif">${last.label}</text>
+      <line class="ag-cross" x1="0" y1="${padT}" x2="0" y2="${H - padB}" stroke="rgba(110,92,72,0.55)" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+      <circle class="ag-dot" r="4" fill="#fbf9f5" stroke="#8c5f2a" stroke-width="2" opacity="0"/>
+      <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+    </svg>`;
+
+    const svg = container.querySelector("svg");
+    const cross = svg.querySelector(".ag-cross");
+    const dot = svg.querySelector(".ag-dot");
+    svg.addEventListener("mousemove", (e) => {
+      const rect = svg.getBoundingClientRect();
+      const relX = (e.clientX - rect.left) / rect.width * W;
+      let idx = Math.round((relX - padL) / (W - padL - padR) * (points.length - 1));
+      idx = Math.max(0, Math.min(points.length - 1, idx));
+      const p = points[idx];
+      cross.setAttribute("x1", px(idx)); cross.setAttribute("x2", px(idx));
+      cross.setAttribute("opacity", "1");
+      dot.setAttribute("cx", px(idx)); dot.setAttribute("cy", py(p.value));
+      dot.setAttribute("opacity", "1");
+      showTip(e.clientX, e.clientY,
+        `<div class="tip-label">${p.label}</div><b>${p.value}</b> scans`);
+    });
+    svg.addEventListener("mouseleave", () => {
+      cross.setAttribute("opacity", "0"); dot.setAttribute("opacity", "0"); hideTip();
+    });
+  }
+
+  /* ── Horizontal bars — sequential ramp (magnitude) ──── */
+  const RAMP = ["#c9a878", "#b8935c", "#a68144", "#93702f", "#7f5e28", "#6a4d22"];
+  function rampColor(frac) {
+    return RAMP[Math.min(RAMP.length - 1, Math.floor(frac * RAMP.length))];
+  }
+  function hbars(container, rows, opts = {}) {
+    const max = Math.max(...rows.map(r => r.value), 1);
+    container.innerHTML = rows.map(r => {
+      const frac = r.value / max;
+      const color = r.color || rampColor(frac);
+      return `
+      <div class="hbar-row" data-label="${r.label}" data-value="${r.value}" data-detail="${r.detail || ""}">
+        <div class="hb-label">${r.icon ? r.icon + " " : ""}${r.label}</div>
+        <div class="hb-track"><div class="hb-fill" style="width:${(frac * 100).toFixed(1)}%;background:${color}"></div></div>
+        <div class="hb-val">${r.value.toLocaleString("en-IN")}</div>
+      </div>`;
+    }).join("");
+    container.querySelectorAll(".hbar-row").forEach(row => {
+      row.addEventListener("mousemove", (e) => {
+        const d = row.dataset;
+        showTip(e.clientX, e.clientY,
+          `<div class="tip-label">${d.label}</div><b>${Number(d.value).toLocaleString("en-IN")}</b> ${d.detail || opts.unit || ""}`);
+      });
+      row.addEventListener("mouseleave", hideTip);
+    });
+  }
+
+  return { gauge, sparkline, hbars, rampColor, showTip, hideTip };
+})();

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Argonaut — AI-Powered Job Verification for India</title>
+<meta name="description" content="Argonaut verifies LinkedIn and WhatsApp job posts with the Argus AI engine — live careers-page verification, duplicate fingerprinting, and a community scam library. India-first fraud intelligence.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23FDF6EC'/><path d='M8 32Q32 12 56 32Q32 52 8 32Z' fill='%23fff' stroke='%238B5A2B' stroke-width='3'/><circle cx='32' cy='32' r='11' fill='%23B87333'/><circle cx='32' cy='32' r='5' fill='%232B2118'/></svg>">
+<script>
+/* ── Boot loader ──────────────────────────────────────────
+   Single-constant cache busting: bump APP_BUILD on each
+   release and every stylesheet/script below busts together.
+   Scripts are injected with async=false, which guarantees
+   in-order execution. Vendor libs (three.js + GSAP, shipped
+   locally for the landing experience) load first. */
+window.APP_BUILD = "2026.07.20-1";
+(function (b) {
+  var css = document.createElement("link");
+  css.rel = "stylesheet";
+  css.href = "css/style.css?b=" + b;
+  document.head.appendChild(css);
+  ["vendor/three.min", "vendor/gsap.min",
+   "config", "fingerprint", "store", "engine", "charts", "scanner", "views", "landing", "app"]
+    .forEach(function (name) {
+      var s = document.createElement("script");
+      s.src = "js/" + name + ".js?b=" + b;
+      s.async = false;
+      document.head.appendChild(s);
+    });
+})(window.APP_BUILD);
+</script>
+</head>
+<body>
+
+<!-- Ambient background (app routes — the landing has its own canvas) -->
+<canvas id="fx"></canvas>
+<div class="aurora a1"></div>
+<div class="aurora a2"></div>
+<div class="aurora a3"></div>
+
+<!-- ── NAVBAR — landing chrome ─────────────────────────── -->
+<nav id="navbar">
+  <div class="nav-logo" id="nav-logo" title="Argonaut — home">
+    <svg width="34" height="34" viewBox="0 0 64 64" fill="none" role="img" aria-label="Argus — the hundred-eyed guardian">
+      <style>
+        @keyframes agvSpin{to{transform:rotate(360deg)}}
+        @keyframes agvPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
+        .agv-vortex{transform-box:view-box;transform-origin:32px 32px;animation:agvSpin 24s linear infinite}
+        .agv-pupil{transform-box:view-box;transform-origin:32px 32px;animation:agvPulse 5.5s ease-in-out infinite}
+        @media(prefers-reduced-motion:reduce){.agv-vortex,.agv-pupil{animation:none}}
+      </style>
+      <defs>
+        <radialGradient id="agv-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="55%" stop-color="rgba(184,115,51,.14)"/>
+          <stop offset="100%" stop-color="rgba(184,115,51,0)"/>
+        </radialGradient>
+        <!-- feather eyespots, drawn at origin and placed via <use x y> -->
+        <g id="agv-eye-l">
+          <circle r="2.9" stroke="#8B5A2B" stroke-width=".9" fill="rgba(255,250,240,.85)"/>
+          <circle r="1.6" stroke="#B87333" stroke-width=".6" fill="rgba(184,115,51,.25)"/>
+          <circle r=".8" fill="#4A2F1A"/>
+        </g>
+        <g id="agv-eye-m">
+          <circle r="2.2" stroke="#B87333" stroke-width=".75" fill="rgba(255,250,240,.8)"/>
+          <circle r="1.15" stroke="#8B5A2B" stroke-width=".5" fill="rgba(184,115,51,.22)"/>
+          <circle r=".6" fill="#5A3A20"/>
+        </g>
+        <g id="agv-eye-s">
+          <circle r="1.55" stroke="#B87333" stroke-width=".6" fill="rgba(184,115,51,.14)"/>
+          <circle r=".5" fill="#6B4423"/>
+        </g>
+        <!-- main tendril: swirl stroke + three eyespots + flourish dots; rotated 12× -->
+        <g id="agv-arm">
+          <path d="M43.5 24.8Q50.2 25.6 52.7 32.2Q54.7 38 52.2 44.6" stroke="#B87333" stroke-width="1.35" stroke-linecap="round" opacity=".72"/>
+          <path d="M42 28.2Q46.6 28 49.3 31.4" stroke="#B87333" stroke-width=".85" stroke-linecap="round" opacity=".5"/>
+          <use href="#agv-eye-m" x="46.5" y="25.2"/>
+          <use href="#agv-eye-l" x="53.4" y="34.2"/>
+          <use href="#agv-eye-m" x="54.5" y="45.5"/>
+          <circle cx="50.5" cy="27.7" r=".7" fill="#B87333" opacity=".5"/>
+          <circle cx="55.2" cy="40" r=".8" fill="#8B5A2B" opacity=".45"/>
+        </g>
+        <!-- filler tendril between main arms; rotated 12× at +15° -->
+        <g id="agv-arm2">
+          <path d="M47 27.5Q52.5 29.5 54 35.5Q55.3 40.5 53.5 45" stroke="#B87333" stroke-width=".95" stroke-linecap="round" opacity=".52"/>
+          <use href="#agv-eye-s" x="49.3" y="29.6"/>
+          <use href="#agv-eye-s" x="54.8" y="37.7"/>
+          <circle cx="56.5" cy="43.4" r=".65" fill="#B87333" opacity=".5"/>
+        </g>
+      </defs>
+
+      <!-- OUTER VORTEX — dense swirling eye-burst, slow infinite spin -->
+      <g class="agv-vortex">
+        <circle cx="32" cy="32" r="30" fill="url(#agv-glow)"/>
+        <use href="#agv-arm"/>
+        <use href="#agv-arm" transform="rotate(30 32 32)"/>
+        <use href="#agv-arm" transform="rotate(60 32 32)"/>
+        <use href="#agv-arm" transform="rotate(90 32 32)"/>
+        <use href="#agv-arm" transform="rotate(120 32 32)"/>
+        <use href="#agv-arm" transform="rotate(150 32 32)"/>
+        <use href="#agv-arm" transform="rotate(180 32 32)"/>
+        <use href="#agv-arm" transform="rotate(210 32 32)"/>
+        <use href="#agv-arm" transform="rotate(240 32 32)"/>
+        <use href="#agv-arm" transform="rotate(270 32 32)"/>
+        <use href="#agv-arm" transform="rotate(300 32 32)"/>
+        <use href="#agv-arm" transform="rotate(330 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(15 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(45 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(75 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(105 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(135 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(165 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(195 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(225 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(255 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(285 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(315 32 32)"/>
+        <use href="#agv-arm2" transform="rotate(345 32 32)"/>
+      </g>
+
+      <!-- CENTRAL GUARDIAN EYE — anchored, stationary -->
+      <g class="agv-core">
+        <circle cx="32" cy="32" r="12.5" fill="rgba(184,115,51,.07)"/>
+        <path d="M21 26.5Q32 19.5 43 26.5" stroke="#B87333" stroke-width="1.1" stroke-linecap="round" opacity=".5"/>
+        <path d="M19.5 32Q32 21 44.5 32Q32 43 19.5 32Z" stroke="#8B5A2B" stroke-width="1.8" fill="rgba(255,253,248,.92)" stroke-linejoin="round"/>
+        <circle cx="32" cy="32" r="5.6" stroke="#B87333" stroke-width="1.4" fill="rgba(184,115,51,.16)"/>
+        <circle cx="32" cy="32" r="4.2" stroke="#8B5A2B" stroke-width=".9" stroke-dasharray="1.1 1.3" fill="none" opacity=".85"/>
+        <g class="agv-pupil">
+          <circle cx="32" cy="32" r="2.5" fill="#2B2118"/>
+          <circle cx="30.9" cy="30.7" r=".8" fill="#FFF8EE" opacity=".95"/>
+        </g>
+      </g>
+    </svg>
+    <span class="brand">ARGONAUT</span>
+    <span class="beta">BETA</span>
+  </div>
+  <div class="nav-links">
+    <button class="nav-link" data-route="home">Home</button>
+    <button class="nav-link" data-route="scanner">Scanner</button>
+    <button class="nav-link" data-route="dashboard">Telemetry</button>
+    <button class="nav-link" data-route="intel">Intelligence</button>
+    <button class="nav-link" data-route="batch">Batch</button>
+    <button class="nav-link" data-route="learn">Learn</button>
+  </div>
+  <div class="nav-actions">
+    <button class="btn-panic" id="nav-panic" title="Interview Panic Button — instant link check">🚨 Panic</button>
+    <button class="btn-icon" id="nav-settings" title="Settings, engine key & data rights">⚙</button>
+  </div>
+</nav>
+
+<!-- ═══ LANDING — “The Voyage” (Home route) ═════════════
+     Ported from the Argonaut Landing standalone design:
+     a full-viewport three.js particle field that morphs
+     trireme → phyllotaxis sphere → Argus eye → scan vortex
+     across four exhibit panels. Driven by js/landing.js. -->
+<div id="landing" aria-label="Argonaut — the voyage">
+  <div style="position:fixed;top:-20vh;right:-10vw;width:65vw;height:65vw;border-radius:50%;background:radial-gradient(closest-side,rgba(212,163,115,0.16),transparent 70%);z-index:0;pointer-events:none"></div>
+  <div style="position:fixed;bottom:-25vh;left:-12vw;width:55vw;height:55vw;border-radius:50%;background:radial-gradient(closest-side,rgba(226,114,91,0.10),transparent 70%);z-index:0;pointer-events:none"></div>
+  <canvas id="landing-canvas" style="position:fixed;inset:0;width:100%;height:100%;z-index:1;display:block"></canvas>
+  <div style="position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse at center,transparent 58%,rgba(139,90,43,0.06) 100%)"></div>
+
+  <section data-panel="0" data-screen-label="Overview" style="position:fixed;left:7vw;top:calc(50% + 2.5vh);transform:translateY(-50%);max-width:620px;z-index:5;pointer-events:none">
+    <div class="el" style="font-size:11px;font-weight:600;letter-spacing:0.34em;color:#B87333;margin-bottom:min(20px,2.2vh)">EXHIBIT I · THE VOYAGE</div>
+    <h1 class="el" style="font-family:'Cinzel',serif;font-weight:700;color:#2B2118;font-size:clamp(34px,min(5.2vw,8.5vh),74px);line-height:1.05;margin:0 0 min(22px,2.5vh)">Sail Past<br>the Sirens.</h1>
+    <p class="el" style="font-size:16px;line-height:1.75;color:#5C5044;max-width:520px;margin:0 0 min(32px,3vh);text-wrap:pretty">Argonaut verifies job offers before you apply. The Argus engine cross-examines every post against live careers pages, duplicate fingerprints, and a community scam library — so the only voyage you take is a real one.</p>
+    <div class="el" style="display:flex;gap:14px;pointer-events:auto;flex-wrap:wrap">
+      <button class="btn-primary" data-lnext>Begin the Tour ↓</button>
+      <button class="btn-ghost" data-go="scanner">Try the Scanner</button>
+    </div>
+  </section>
+
+  <section data-panel="1" data-screen-label="How It Works" style="position:fixed;left:7vw;top:calc(50% + 2.5vh);transform:translateY(-50%);max-width:600px;z-index:5;pointer-events:none">
+    <div class="el" style="font-size:11px;font-weight:600;letter-spacing:0.34em;color:#B87333;margin-bottom:min(20px,2.2vh)">EXHIBIT II · THE METHOD</div>
+    <h1 class="el" style="font-family:'Cinzel',serif;font-weight:700;color:#2B2118;font-size:clamp(28px,min(4.6vw,7vh),64px);line-height:1.05;margin:0 0 min(18px,2vh)">Order out<br>of Noise.</h1>
+    <p class="el" style="font-size:15px;line-height:1.7;color:#5C5044;margin:0 0 min(34px,3vh)">Three movements. One verdict.</p>
+    <div style="display:flex;flex-direction:column;gap:min(24px,2.6vh);max-width:520px">
+      <div class="el" style="display:flex;gap:18px;align-items:baseline">
+        <span style="font-family:'Cinzel',serif;font-size:24px;font-weight:600;color:#B87333;min-width:34px">I</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.16em;color:#2B2118;margin-bottom:5px">PRESENT THE ARTIFACT</div>
+          <div style="font-size:13.5px;line-height:1.65;color:#6B5D4F">Paste any job post — LinkedIn, WhatsApp, or e-mail. Screenshots too: perceptual hashing recognizes recycled scam images.</div>
+        </div>
+      </div>
+      <div class="el" style="display:flex;gap:18px;align-items:baseline">
+        <span style="font-family:'Cinzel',serif;font-size:24px;font-weight:600;color:#B87333;min-width:34px">II</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.16em;color:#2B2118;margin-bottom:5px">CROSS-EXAMINATION</div>
+          <div style="font-size:13.5px;line-height:1.65;color:#6B5D4F">Argus fingerprints the post on-device, then checks the live careers page, registrar records, and salary sanity — in seconds.</div>
+        </div>
+      </div>
+      <div class="el" style="display:flex;gap:18px;align-items:baseline">
+        <span style="font-family:'Cinzel',serif;font-size:24px;font-weight:600;color:#B87333;min-width:34px">III</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.16em;color:#2B2118;margin-bottom:5px">THE VERDICT</div>
+          <div style="font-size:13.5px;line-height:1.65;color:#6B5D4F">A trust score from 0–100, with every piece of evidence on display.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-panel="2" data-screen-label="Mission" style="position:fixed;left:7vw;top:calc(50% + 2.5vh);transform:translateY(-50%);max-width:620px;z-index:5;pointer-events:none">
+    <div class="el" style="font-size:11px;font-weight:600;letter-spacing:0.34em;color:#B87333;margin-bottom:min(20px,2.2vh)">EXHIBIT III · THE MISSION</div>
+    <h1 class="el" style="font-family:'Cinzel',serif;font-weight:700;color:#2B2118;font-size:clamp(26px,min(4.4vw,6.5vh),60px);line-height:1.08;margin:0 0 min(22px,2.5vh)">A Hundred Eyes,<br>Always Open.</h1>
+    <p class="el" style="font-size:15.5px;line-height:1.75;color:#5C5044;max-width:540px;margin:0 0 min(36px,3.2vh);text-wrap:pretty">Named for Argus Panoptes, the all-seeing guardian, our engine watches for phantom recruiters, deposit scams, and wage-theft schemes preying on job seekers across India. When one of us is deceived, every eye learns.</p>
+  </section>
+
+  <section data-panel="3" data-screen-label="Scanner" style="position:fixed;left:7vw;top:calc(50% + 2.5vh);transform:translateY(-50%);max-width:600px;z-index:5;pointer-events:none">
+    <div class="el" style="font-size:11px;font-weight:600;letter-spacing:0.34em;color:#B87333;margin-bottom:min(20px,2.2vh)">EXHIBIT IV · THE INSTRUMENT</div>
+    <h1 class="el" style="font-family:'Cinzel',serif;font-weight:700;color:#2B2118;font-size:clamp(30px,min(5vw,8vh),70px);line-height:1.05;margin:0 0 min(22px,2.5vh)">Enter<br>the Vortex.</h1>
+    <p class="el" style="font-size:15.5px;line-height:1.7;color:#5C5044;max-width:500px;margin:0 0 min(30px,3vh)">Paste a posting and watch the engine descend on it.</p>
+    <div class="el" style="display:flex;gap:10px;max-width:540px;pointer-events:auto;padding:10px;border-radius:12px;background:rgba(255,255,255,0.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(184,115,51,0.25);box-shadow:0 10px 30px rgba(43,33,24,0.08)">
+      <input id="landing-scan-input" type="text" placeholder="Paste a LinkedIn or WhatsApp job post…" aria-label="Job post to scan"/>
+      <button class="btn-primary" id="landing-scan-run" style="padding:12px 24px">Run Scan</button>
+    </div>
+    <p class="el" style="font-size:11px;line-height:1.6;color:#8A7A66;max-width:500px;margin:18px 0 0">Probabilistic trust scores — not legal declarations. Verify independently. Report fraud at <a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a>.</p>
+  </section>
+
+  <aside data-chrome="hud" style="position:fixed;left:28px;bottom:28px;z-index:8;width:290px;padding:18px 20px 16px;border-radius:12px;background:rgba(255,255,255,0.6);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border:1px solid rgba(184,115,51,0.24);border-top:3px double rgba(184,115,51,0.5);box-shadow:0 10px 34px rgba(43,33,24,0.08)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
+      <span style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;letter-spacing:0.14em;color:#2B2118">THE ARGUS ENGINE</span>
+      <span style="font-size:9px;letter-spacing:0.2em;color:#8A7A66">EXHIBIT №001</span>
+    </div>
+    <div style="height:1px;background:linear-gradient(90deg,rgba(184,115,51,0.4),transparent);margin-bottom:12px"></div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#7A9E7E;animation:blink 2.2s infinite;flex:none"></span>
+        <span style="font-size:10px;font-weight:600;letter-spacing:0.16em;color:#8A7A66;flex:1">AI ENGINE</span>
+        <span style="font-size:11px;font-weight:700;color:#2B2118;letter-spacing:0.06em">ACTIVE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#E2725B;animation:blink 3.4s infinite;flex:none"></span>
+        <span style="font-size:10px;font-weight:600;letter-spacing:0.16em;color:#8A7A66;flex:1">LATENCY</span>
+        <span style="font-size:11px;font-weight:700;color:#2B2118;font-variant-numeric:tabular-nums"><span id="landing-latency">12</span> ms</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#D4A373;flex:none"></span>
+        <span style="font-size:10px;font-weight:600;letter-spacing:0.16em;color:#8A7A66;flex:1">POSTS SCANNED</span>
+        <span id="landing-scanned" style="font-size:11px;font-weight:700;color:#2B2118;font-variant-numeric:tabular-nums">0</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#B87333;flex:none"></span>
+        <span style="font-size:10px;font-weight:600;letter-spacing:0.16em;color:#8A7A66;flex:1">FORMATION</span>
+        <span id="landing-formation" style="font-size:10.5px;font-weight:700;color:#8B5A2B;letter-spacing:0.05em">TRIREME · AEGEAN</span>
+      </div>
+    </div>
+    <div style="height:1px;background:linear-gradient(90deg,rgba(184,115,51,0.4),transparent);margin:12px 0 8px"></div>
+    <div style="font-size:8.5px;letter-spacing:0.22em;color:#A99A87">DPDP-COMPLIANT · ON-DEVICE INTELLIGENCE</div>
+  </aside>
+
+  <div data-chrome="rail" style="position:fixed;right:30px;top:50%;transform:translateY(-50%);z-index:8;display:flex;flex-direction:column;gap:22px">
+    <button data-dot="0" title="Overview" style="width:12px;height:12px;border-radius:50%;background:#B87333;border:1.5px solid #B87333;cursor:pointer;padding:0"></button>
+    <button data-dot="1" title="How It Works" style="width:12px;height:12px;border-radius:50%;background:transparent;border:1.5px solid rgba(184,115,51,0.45);cursor:pointer;padding:0"></button>
+    <button data-dot="2" title="Mission" style="width:12px;height:12px;border-radius:50%;background:transparent;border:1.5px solid rgba(184,115,51,0.45);cursor:pointer;padding:0"></button>
+    <button data-dot="3" title="Scanner" style="width:12px;height:12px;border-radius:50%;background:transparent;border:1.5px solid rgba(184,115,51,0.45);cursor:pointer;padding:0"></button>
+  </div>
+
+  <div data-chrome="hint" style="position:fixed;right:28px;bottom:28px;z-index:8;display:flex;align-items:center;gap:10px;pointer-events:none">
+    <span style="font-size:9.5px;font-weight:600;letter-spacing:0.28em;color:#8A7A66">SCROLL TO NAVIGATE</span>
+    <span style="display:inline-block;color:#B87333;font-size:14px;animation:hintFloat 1.8s ease-in-out infinite">↓</span>
+  </div>
+</div>
+
+<!-- ── VIEW ───────────────────────────────────────────── -->
+<main id="view"></main>
+
+<!-- ── FOOTER ─────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="meander" style="margin:0 auto 26px" aria-hidden="true"></div>
+    <div style="display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:18px">
+      <div style="font-family:var(--font-display);font-weight:700;letter-spacing:1px;font-size:14px">
+        ARGONAUT <span style="color:var(--ink-3);font-weight:400;font-size:12px">· Argus AI Engine</span>
+      </div>
+      <div style="display:flex;gap:16px;font-size:12px;color:var(--ink-3);flex-wrap:wrap">
+        <span>Argus AI · search-grounded</span><span>On-device intelligence</span>
+      </div>
+    </div>
+    <div class="f-disc">
+      <b>Algorithmic disclaimer:</b> Argonaut produces probabilistic trust scores and safety advisories — not legal declarations of criminal activity or definitive statements about any person or company. False positives and negatives are possible; every result includes a reporting path. Verify independently before making decisions.
+      <br><br>
+      <b>Privacy (DPDP Act 2023):</b> Analysis runs with your itemized, withdrawable consent. Scans, fingerprints, the vault, and audit trails live only in this browser. Content unknown to the local cache is processed by Argonaut's secure third-party AI infrastructure solely for fraud analysis — never for advertising or model training. Export or erase everything anytime in Settings. Report financial fraud at <a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a>.
+    </div>
+  </div>
+</footer>
+
+<!-- ── OVERLAYS ───────────────────────────────────────── -->
+<div id="modal-root"></div>
+<div id="toast"></div>
+
+</body>
+</html>
