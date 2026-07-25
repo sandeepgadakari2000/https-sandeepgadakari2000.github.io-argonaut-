@@ -349,7 +349,7 @@ window.Argus = window.Argus || {};
 
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn-ghost" id="share-btn" style="flex:1;min-width:140px">Share Result</button>
-        <button class="btn-ghost" id="report-btn" style="flex:1;min-width:140px;color:var(--ink-3)">Report Incorrect Result</button>
+        ${Argus.feedbackTarget() ? `<button class="btn-ghost" id="report-btn" style="flex:1;min-width:140px;color:var(--ink-3)">Report Incorrect Result</button>` : ""}
         ${m.cached ? `<button class="btn-ghost" id="fresh-btn" style="flex:1;min-width:140px">Re-run Fresh AI Analysis</button>` : ""}
       </div>
       <button id="reset-btn" style="width:100%;margin-top:12px;padding:11px;background:transparent;border:none;color:var(--ink-3);font-size:13px;cursor:pointer">← Analyze another post</button>
@@ -515,18 +515,28 @@ window.Argus = window.Argus || {};
   /* This used to copy a report and ask the user to email it. That
      address was never read, so every correction was silently lost —
      and it pointed users at a domain we don't control, on a page that
-     promises nothing leaves the browser. Instead, copy the post and
-     open the Telegram bot: one 👎 there files a correction we can
-     actually retrain on. */
+     promises nothing leaves the browser. Now it copies the post and
+     opens whichever correction channel is actually live (see
+     Argus.feedbackTarget): a form while the bot is down, the bot once
+     it is deployed. The button is not rendered at all when neither is,
+     so a correction can never again vanish into an unread channel.
+
+     The post is COPIED for the user to paste, never appended to the
+     URL. A scanned post routinely contains a recruiter's phone number
+     or email, and query strings leak into browser history, referrer
+     headers, and the form host's logs — so what gets shared stays the
+     user's decision, which is the same promise the scanner makes. */
   function reportResult() {
     if (!st.result) return;
+    const target = Argus.feedbackTarget();
+    if (!target) return;
     const post = (st.text || st.ocrText || "").trim();
     if (post) {
-      Argus.app.copyText(post, "Post copied — paste it to the Argonaut bot and tap 👎 Wrong");
+      Argus.app.copyText(post, "Post copied — paste it into the form and tell us what Argus got wrong");
     } else {
-      Argus.app.toast("Opening the Argonaut bot — send the post there and tap 👎 Wrong");
+      Argus.app.toast("Opening the correction form — tell us what Argus got wrong");
     }
-    window.open(Argus.CONFIG.BOT_URL, "_blank", "noopener");
+    window.open(target, "_blank", "noopener");
   }
 
   /* ═══ BATCH PIPELINE (B2B / Placement Cells) ═══════════ */

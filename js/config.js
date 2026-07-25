@@ -21,6 +21,25 @@ Argus.CONFIG = {
      only channel that records 👍/👎 and turns them into training
      labels, so "Report Incorrect Result" sends people there. */
   BOT_URL: "https://t.me/ArgonautScamCheckBot",
+  /* Where "Report Incorrect Result" sends corrections. Paste a Google
+     Form (or any form) URL here to collect them while the bot is down.
+     Leave it "" and the button HIDES ITSELF — a button that opens a
+     channel nobody reads is worse than no button, because the user
+     believes the correction landed somewhere. That already happened
+     once with an unread email address (see reportResult in scanner.js).
+     Precedence: FEEDBACK_URL, else BOT_URL, else hidden. */
+  FEEDBACK_URL: "",
+};
+
+/* Resolves the live correction channel, or "" if there is none.
+   BOT_URL only counts while the bot is actually deployed — flip
+   BOT_LIVE to true once Render is running so corrections route to
+   Telegram (structured labels) instead of the form. */
+Argus.BOT_LIVE = false;
+Argus.feedbackTarget = function () {
+  if (Argus.CONFIG.FEEDBACK_URL) return Argus.CONFIG.FEEDBACK_URL;
+  if (Argus.BOT_LIVE && Argus.CONFIG.BOT_URL) return Argus.CONFIG.BOT_URL;
+  return "";
 };
 
 /* ── Analysis logic lives on-device in js/model.js ──────────
