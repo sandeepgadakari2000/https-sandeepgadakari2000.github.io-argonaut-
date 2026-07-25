@@ -145,7 +145,7 @@ window.Argus = window.Argus || {};
               <li>Hosted batch throughput &amp; team seats</li>
               <li>Priority support · DPDP-compliant audit exports</li>
             </ul>
-            <a class="btn-primary" href="mailto:sales@argonaut.ai?subject=Placement%20Cell%20Plan">Contact sales</a>
+            <a class="btn-primary" href="mailto:sandeepgadakari2000@gmail.com?subject=Placement%20Cell%20Plan">Contact sales</a>
           </div>
           <div class="glass price-card">
             <div class="p-name">ENTERPRISE / HR</div>
@@ -157,7 +157,7 @@ window.Argus = window.Argus || {};
               <li>GCC / Dubai entity billing corridors</li>
               <li>SLA + dedicated intelligence analyst</li>
             </ul>
-            <a class="btn-ghost" href="mailto:sales@argonaut.ai?subject=Enterprise%20Plan">Talk to us</a>
+            <a class="btn-ghost" href="mailto:sandeepgadakari2000@gmail.com?subject=Enterprise%20Plan">Talk to us</a>
           </div>
         </div>
       </section>

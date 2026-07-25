@@ -16,6 +16,11 @@ Argus.CONFIG = {
   SIMHASH_THRESHOLD: 10,         // max hamming distance for near-duplicate text (edited copies ≈7, unrelated ≈26)
   IMGHASH_THRESHOLD: 10,         // max hamming distance for perceptual image match
   CONSENT_VERSION: 3,
+  /* The website deliberately stores nothing off-device, so a
+     correction made here can never reach us. The Telegram bot is the
+     only channel that records 👍/👎 and turns them into training
+     labels, so "Report Incorrect Result" sends people there. */
+  BOT_URL: "https://t.me/ArgonautScamCheckBot",
 };
 
 /* ── Analysis logic lives on-device in js/model.js ──────────

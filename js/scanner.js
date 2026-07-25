@@ -512,13 +512,21 @@ window.Argus = window.Argus || {};
     Argus.app.copyText(card, "Scan report copied — paste it anywhere to warn others");
   }
 
+  /* This used to copy a report and ask the user to email it. That
+     address was never read, so every correction was silently lost —
+     and it pointed users at a domain we don't control, on a page that
+     promises nothing leaves the browser. Instead, copy the post and
+     open the Telegram bot: one 👎 there files a correction we can
+     actually retrain on. */
   function reportResult() {
-    const r = st.result;
-    if (!r) return;
-    const note = r.report_note || "Result may be incorrect for this post.";
-    Argus.app.copyText(
-      `Argonaut Feedback Report\nIssue: ${note}\nScore: ${r.trust_score} | Verdict: ${r.verdict}\n\nPost content: ${st.text || "(screenshot)"}`,
-      "Report copied — email it to feedback@argonaut.ai to help improve the engine");
+    if (!st.result) return;
+    const post = (st.text || st.ocrText || "").trim();
+    if (post) {
+      Argus.app.copyText(post, "Post copied — paste it to the Argonaut bot and tap 👎 Wrong");
+    } else {
+      Argus.app.toast("Opening the Argonaut bot — send the post there and tap 👎 Wrong");
+    }
+    window.open(Argus.CONFIG.BOT_URL, "_blank", "noopener");
   }
 
   /* ═══ BATCH PIPELINE (B2B / Placement Cells) ═══════════ */
