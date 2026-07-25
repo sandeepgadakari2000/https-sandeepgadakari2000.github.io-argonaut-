@@ -8,6 +8,14 @@
 !.env.example
 server/.env
 
+# Safety net: stray notes at the repo ROOT are where secrets get
+# pasted by accident. These patterns are deliberately anchored with
+# a leading "/" so they only apply to the root folder — an unanchored
+# *token* would also swallow legitimate files like server/set-token.bat.
+/*.txt
+/*token*
+/*secret*
+
 # ── DEPENDENCIES (thousands of files, reinstalled with npm i)
 node_modules/
 server/node_modules/
