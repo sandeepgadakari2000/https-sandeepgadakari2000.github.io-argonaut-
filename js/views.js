@@ -74,8 +74,8 @@ window.Argus = window.Argus || {};
         <div class="grid grid-3" style="margin-top:20px">
           ${[
             ["01", "Fingerprint first", "Your post is normalized and SimHash-fingerprinted on-device. Known posts return instantly from the intelligence DB — free, private, milliseconds."],
-            ["02", "AI pattern analysis", "Unknown posts go to the Argus AI engine: 20+ India-specific fraud signals, engagement-bait detection, and a false-positive guard that separates spammy recruiters from actual scams."],
-            ["03", "Live careers verification", "Search-grounded verification cross-checks the role against official careers pages, Naukri, LinkedIn Jobs, Greenhouse, Lever, and Workday — and returns a 0–100 trust score with evidence."],
+            ["02", "On-device fraud analysis", "Unknown posts run through the Argus ensemble: 20+ India-specific fraud signals, engagement-bait detection, and a false-positive guard that separates spammy recruiters from actual scams — all in your browser."],
+            ["03", "Calibrated trust score", "The on-device ensemble weighs every signal — official ATS links, corporate domains, and role specifics against fraud markers — and returns a 0–100 trust score with the full evidence trail."],
           ].map(([n, t, b]) => `
           <div class="glass feature-card">
             <div class="mono" style="font-size:26px;font-weight:700;color:var(--accent-faint);margin-bottom:10px">${n}</div>
@@ -127,7 +127,7 @@ window.Argus = window.Argus || {};
             <div><span class="p-price">₹0</span> <span class="p-per">forever</span></div>
             <ul>
               <li>Unlimited duplicate-detection lookups</li>
-              <li>Daily AI scan allowance (bring your own engine key)</li>
+              <li>Unlimited on-device AI scans (no key, always free)</li>
               <li>Community scam library access &amp; reporting</li>
               <li>Learning Hub + Interview Panic Button</li>
               <li>On-device applicant vault</li>
@@ -142,7 +142,7 @@ window.Argus = window.Argus || {};
               <li>Batch pipelines — hundreds of links per run</li>
               <li>Institutional dashboard &amp; hazard reports</li>
               <li>Student-facing telemetry alerts</li>
-              <li>Managed API quota (no key needed)</li>
+              <li>Hosted batch throughput &amp; team seats</li>
               <li>Priority support · DPDP-compliant audit exports</li>
             </ul>
             <a class="btn-primary" href="mailto:sales@argonaut.ai?subject=Placement%20Cell%20Plan">Contact sales</a>
@@ -208,6 +208,10 @@ window.Argus = window.Argus || {};
     const dist = S.verdictDist();
     const trend = S.trendSeries();
     const hotspots = S.hotspots();
+    const scansForAvg = S.getScans();
+    const avgScore = scansForAvg.length
+      ? Math.round(scansForAvg.reduce((a, s) => a + ((s.result && s.result.trust_score) || 0), 0) / scansForAvg.length)
+      : null;
     const totalVerdicts = dist.LEGITIMATE + dist.ENGAGEMENT_BAIT + dist.SUSPICIOUS + dist.ACTUAL_SCAM;
     // Threat level derived from this device's real scan outcomes
     const ratio = stats.scanned ? stats.fakes / stats.scanned : 0;
@@ -235,9 +239,9 @@ window.Argus = window.Argus || {};
         <div class="glass stat-tile"><div class="s-label">Threat Level</div>
           <div class="s-value" style="color:${threat.color}">${threat.label}</div>
           <div class="s-hint">${threat.hint}</div></div>
-        <div class="glass stat-tile"><div class="s-label">AI Quota Left Today</div>
-          <div class="s-value" style="color:var(--hl-ink)">${stats.quotaLeft}</div>
-          <div class="s-hint">duplicates always free</div></div>
+        <div class="glass stat-tile"><div class="s-label">Avg Trust Score</div>
+          <div class="s-value" style="color:${avgScore == null ? "var(--ink-3)" : Argus.scoreStyle(avgScore).color}">${avgScore == null ? "—" : avgScore}</div>
+          <div class="s-hint">${avgScore == null ? "run a scan first" : "across your scans"}</div></div>
       </section>
 
       <section class="grid grid-2">

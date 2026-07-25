@@ -14,6 +14,7 @@ window.Argus = window.Argus || {};
   const st = {
     tab: "text", text: "", imgB64: null, imgType: null, imgPreview: null,
     loading: false, phase: 0, result: null, meta: null, error: null, timers: [],
+    ocrPhase: false, ocrProgress: 0, ocrText: null, ocrConfidence: null,
   };
 
   function clearTimers() { st.timers.forEach(clearTimeout); st.timers = []; }
@@ -62,34 +63,50 @@ window.Argus = window.Argus || {};
       S.audit(scanId, "CACHE_BYPASS", "User requested fresh AI analysis");
     }
 
-    /* 3 — Graceful throttling (blueprint §3.1) */
-    if (S.quotaLeft() <= 0) {
-      st.error = `Daily free AI analysis limit reached (${Argus.CONFIG.DAILY_QUOTA} AI scans per day). The limit resets at midnight — duplicate-detection lookups remain unlimited and free.`;
-      S.audit(scanId, "THROTTLED", "Daily quota ceiling hit — request declined gracefully");
-      return render();
+    /* 3 — Screenshot → text (on-device OCR), then treat as text */
+    let analyzeText = isText ? st.text : null;
+    if (!isText) {
+      st.loading = true; st.ocrPhase = true; st.ocrProgress = 0; st.result = null; st.ocrText = null;
+      render();
+      let ocr = null, ocrErr = null;
+      try {
+        ocr = await Argus.ocr.recognize(st.imgPreview, p => { st.ocrProgress = p; renderOcr(); });
+      } catch (e) { ocrErr = e; }
+      st.ocrPhase = false;
+      const clean = ocr ? ocr.text.replace(/ /g, " ").replace(/[ \t]+\n/g, "\n").trim() : "";
+      if (clean.replace(/\s/g, "").length < 15) {
+        st.result = imageFallbackResult(!!ocrErr);
+        st.meta = { scanId, cached: false, sources: [], latencyMs: 0, libHits: [], ocrFailed: true };
+        S.audit(scanId, ocrErr ? "OCR_UNAVAILABLE" : "OCR_LOW_TEXT",
+          ocrErr ? String(ocrErr.message).slice(0, 120) : "OCR found too little clear text to analyse");
+        st.loading = false;
+        return render();
+      }
+      st.ocrText = clean; st.ocrConfidence = ocr.confidence;
+      analyzeText = clean;
+      // link the screenshot's text into the local dedup DB
+      exact = FP.exactHash(clean);
+      sim = FP.simhash(clean).toString(16);
+      S.audit(scanId, "OCR", `Read ${clean.length} characters from the screenshot (confidence ${ocr.confidence}%)`);
     }
 
-    /* 4 — Argus AI engine + live search grounding */
+    /* 4 — On-device Argus model (unlimited — no API, no cost) */
     st.loading = true; st.phase = 0; st.result = null;
     render();
     clearTimers();
-    st.timers.push(setTimeout(() => { st.phase = 1; renderPhases(); }, 3500));
-    st.timers.push(setTimeout(() => { st.phase = 2; renderPhases(); }, 9000));
+    st.timers.push(setTimeout(() => { st.phase = 1; renderPhases(); }, 420));
+    st.timers.push(setTimeout(() => { st.phase = 2; renderPhases(); }, 880));
 
     try {
-      S.audit(scanId, "MODEL_CALL", `Dispatched to ${Argus.CONFIG.ENGINE_LABEL} with live search grounding`);
-      const { parsed, sources, latencyMs } = await Argus.engine.analyzePost({
-        text: isText ? st.text : null,
-        imageB64: isText ? null : st.imgB64,
-        imgType: st.imgType,
-      });
+      S.audit(scanId, "MODEL_CALL", `Analyzed on-device by ${Argus.CONFIG.ENGINE_LABEL} — no data left the browser`);
+      const { parsed, sources, latencyMs } = await Argus.engine.analyzePost({ text: analyzeText });
       S.recordUsage();
       S.audit(scanId, "MODEL_RESPONSE", `Structured verdict received in ${(latencyMs / 1000).toFixed(1)}s — score ${parsed.trust_score}, ${parsed.verdict_type}`);
 
       /* 5 — Community scam-library cross-check */
       const ids = (parsed.extracted && parsed.extracted.identifiers) ||
-        FP.extractIdentifiers(isText ? st.text : "");
-      const libHits = S.checkScamLibrary(isText ? st.text : "", ids);
+        FP.extractIdentifiers(analyzeText || "");
+      const libHits = S.checkScamLibrary(analyzeText || "", ids);
       if (libHits.length && parsed.trust_score > 25) {
         S.audit(scanId, "COMMUNITY_MATCH",
           `${libHits.length} known scam identifier(s) matched — trust score capped at 25 (was ${parsed.trust_score})`);
@@ -100,7 +117,7 @@ window.Argus = window.Argus || {};
       /* 6 — Persist intelligence */
       const saved = S.saveScan({
         exact, sim, imgHash,
-        snippet: isText ? st.text.slice(0, 140) : "(screenshot)",
+        snippet: (isText ? "" : "[screenshot] ") + (analyzeText || "(screenshot)").slice(0, 140),
         result: parsed, sources,
         company: parsed.extracted && parsed.extracted.company,
       });
@@ -111,22 +128,11 @@ window.Argus = window.Argus || {};
       S.audit(scanId, "LEDGER_UPDATE", `Company ledger + geospatial telemetry updated; scan ${saved.id} fingerprint stored`);
 
       st.result = parsed;
-      st.meta = { scanId, cached: false, sources, latencyMs, libHits };
+      st.meta = { scanId, cached: false, sources, latencyMs, libHits, ocrText: st.ocrText, ocrConfidence: st.ocrConfidence };
     } catch (err) {
       const msg = String(err.message || "");
-      if (err.code === "NO_KEY") {
-        st.error = msg;
-        st.errorAction = "key";
-      } else if (/api[ _]key (not valid|invalid|expired)|api_key_invalid|permission[_ ]denied/i.test(msg)) {
-        st.error = "The AI service rejected your engine access key (invalid, expired, or restricted). Open Settings and paste a fresh key from Google AI Studio — copy the entire key exactly, with no extra spaces or missing characters.";
-        st.errorAction = "key";
-      } else if (err.code === "QUOTA") {
-        st.error = msg;               // already a friendly, actionable message
-        st.errorAction = null;
-      } else {
-        st.error = `Analysis failed: ${msg}. Please try again.`;
-        st.errorAction = null;
-      }
+      st.error = `Analysis hit an unexpected error: ${msg}. Please try again.`;
+      st.errorAction = null;
       S.audit(scanId, "ERROR", msg.slice(0, 160));
     } finally {
       clearTimers();
@@ -144,7 +150,7 @@ window.Argus = window.Argus || {};
       <section class="fadeup" style="text-align:center;margin-bottom:28px;padding-top:8px">
         <div class="eyebrow" style="justify-content:center">Live Scanner · ${esc(Argus.CONFIG.ENGINE_LABEL)}</div>
         <h2 class="sec-title">Verify any job post in seconds</h2>
-        <p class="sec-sub" style="margin:0 auto">Paste a LinkedIn post or WhatsApp forward — Argus fingerprints it against the local intelligence DB first (instant, zero cost), then runs full AI analysis with live careers-page verification.</p>
+        <p class="sec-sub" style="margin:0 auto">Paste a LinkedIn post or WhatsApp forward — Argus fingerprints it against the local intelligence DB first, then runs the on-device fraud model. Everything happens in your browser: no account, no API key, nothing leaves this device.</p>
       </section>
       ${st.result ? resultHTML() : inputHTML()}
     </div>`;
@@ -176,12 +182,8 @@ window.Argus = window.Argus || {};
           <div style="font-size:12.5px;color:var(--ink-3)">PNG · JPG · WEBP — matched against known scam images via perceptual hashing</div>
         </div>
         <input type="file" id="img-input" accept="image/*" style="display:none"/>`}
-      ${st.error ? `<div style="margin-top:14px;padding:12px 16px;background:var(--crit-bg);border:1px solid var(--crit-border);border-radius:11px;font-size:13.5px;color:var(--crit-strong);line-height:1.6">${esc(st.error)}
-        ${st.errorAction === "key" ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center">
-          <button class="btn-primary btn-sm" id="err-settings">Open Settings &amp; fix key</button>
-          <a class="btn-ghost btn-sm" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">↗ Get a free key (Google AI Studio)</a>
-        </div>` : ""}</div>` : ""}
-      <div id="phases-slot">${st.loading ? phasesHTML() : ""}</div>
+      ${st.error ? `<div style="margin-top:14px;padding:12px 16px;background:var(--crit-bg);border:1px solid var(--crit-border);border-radius:11px;font-size:13.5px;color:var(--crit-strong);line-height:1.6">${esc(st.error)}</div>` : ""}
+      <div id="phases-slot">${st.loading ? (st.ocrPhase ? ocrHTML() : phasesHTML()) : ""}</div>
       ${!st.loading ? `
         <button class="btn-primary" id="analyze-btn" style="width:100%;margin-top:18px">Analyze Job Post</button>` : ""}
     </div>`;
@@ -190,8 +192,8 @@ window.Argus = window.Argus || {};
   function phasesHTML() {
     const phases = [
       { n: "1", label: "Fingerprint check — local intelligence DB" },
-      { n: "2", label: "Live web search — company careers pages" },
-      { n: "3", label: "Calculating trust score" },
+      { n: "2", label: "Analysing fraud signals & entities" },
+      { n: "3", label: "Computing calibrated trust score" },
     ];
     return `
     <div style="margin-top:16px;padding:16px 18px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:13px;position:relative;overflow:hidden">
@@ -213,6 +215,56 @@ window.Argus = window.Argus || {};
   function renderPhases() {
     const slot = document.getElementById("phases-slot");
     if (slot && st.loading) slot.innerHTML = phasesHTML();
+  }
+
+  /* ── OCR loading panel (screenshots) ────────────────── */
+  function ocrHTML() {
+    const pct = st.ocrProgress || 0;
+    return `
+    <div style="margin-top:16px;padding:16px 18px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:13px">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:10px">
+        <span class="spinner"></span>
+        <span style="font-size:13.5px;font-weight:600;color:var(--accent-text)">Reading text from your screenshot…</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">${pct}%</span>
+      </div>
+      <div style="height:6px;border-radius:4px;background:var(--neutral-bg);overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--accent);transition:width .25s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--ink-3);margin-top:8px;line-height:1.5">On-device OCR — the image never leaves your browser. The first image scan downloads the engine (~5&nbsp;MB), then it's cached.</div>
+    </div>`;
+  }
+  function renderOcr() {
+    const slot = document.getElementById("phases-slot");
+    if (slot && st.ocrPhase) slot.innerHTML = ocrHTML();
+  }
+
+  function imageFallbackResult(offline) {
+    return {
+      trust_score: 50, verdict: "SUSPICIOUS", verdict_type: "SUSPICIOUS", confidence: "LOW",
+      summary: offline
+        ? "The OCR engine couldn't load — it needs an internet connection the first time you scan an image (after that it's cached). Paste the post's text for a full trained-model analysis."
+        : "Argus couldn't read enough clear text from this screenshot. Crop tightly to the post text, use a sharper image, or paste the text for a full verdict.",
+      extracted: { company: null, role: null, location: null, salary: null, contact_method: null, poster: null, identifiers: { phones: [], upi: [], emails: [] } },
+      verification: { status: "INCONCLUSIVE", careers_url: null, detail: "On-device OCR could not extract usable text from the image." },
+      red_flags: [], green_flags: [],
+      recommendation: "Paste the job post's text into the Scanner for a full trained-model analysis.",
+      report_note: "If this screenshot is a known scam that wasn't caught, report it to grow the community image library.",
+    };
+  }
+
+  function ocrPanelHTML(m) {
+    const conf = m.ocrConfidence == null ? 0 : m.ocrConfidence;
+    const confColor = conf >= 80 ? "var(--good)" : conf >= 55 ? "var(--warn)" : "var(--crit)";
+    return `
+    <div class="glass-flat" style="padding:16px 18px;margin-bottom:14px;border-radius:14px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <span class="card-label" style="margin:0">Text read from your screenshot</span>
+        <span class="chip neutral" style="font-size:9px">OCR confidence <b style="color:${confColor}">${conf}%</b></span>
+      </div>
+      <div style="font-size:12px;color:var(--ink-3);margin-bottom:8px;line-height:1.5">OCR isn't perfect — check the text below. Fix any misreads, then re-analyse for the most accurate verdict.</div>
+      <textarea id="ocr-text" class="input-area" style="min-height:96px;font-size:13px">${esc(m.ocrText)}</textarea>
+      <button class="btn-ghost btn-sm" id="ocr-reanalyze" style="margin-top:10px">Re-analyse edited text</button>
+    </div>`;
   }
 
   /* ── Result blocks ──────────────────────────────────── */
@@ -250,6 +302,8 @@ window.Argus = window.Argus || {};
         </div>
       </div>
 
+      ${m.ocrText ? ocrPanelHTML(m) : ""}
+
       ${verif ? `
       <div class="glass-flat" style="background:${verif.bg};border-color:${verif.border};padding:16px 18px;margin-bottom:14px;border-radius:14px">
         <div class="card-label">Careers Page Verification</div>
@@ -258,12 +312,7 @@ window.Argus = window.Argus || {};
         </div>
         <div style="font-size:13.5px;color:var(--ink-2);line-height:1.55">${esc(r.verification.detail)}</div>
         ${r.verification.careers_url && r.verification.careers_url !== "null"
-          ? `<a href="${esc(r.verification.careers_url)}" target="_blank" rel="noopener noreferrer" style="font-size:13px;color:${verif.color};font-weight:600;display:inline-flex;gap:5px;margin-top:10px">View job listing ↗</a>` : ""}
-        ${(m.sources && m.sources.length) ? `
-          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--neutral-border)">
-            <div style="font-size:10.5px;letter-spacing:1.5px;color:var(--ink-3);text-transform:uppercase;margin-bottom:6px">Search grounding sources</div>
-            ${m.sources.map(s => `<a href="${esc(s.uri)}" target="_blank" rel="noopener noreferrer" style="display:block;font-size:12.5px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">↗ ${esc(s.title)}</a>`).join("")}
-          </div>` : ""}
+          ? `<a href="${esc(r.verification.careers_url)}" target="_blank" rel="noopener noreferrer" style="font-size:13px;color:${verif.color};font-weight:600;display:inline-flex;gap:5px;margin-top:10px">Open the application link ↗</a>` : ""}
       </div>` : ""}
 
       ${companyRec && companyRec.scans > 1 ? `
@@ -392,7 +441,7 @@ window.Argus = window.Argus || {};
   function wire() {
     const $ = id => document.getElementById(id);
     document.querySelectorAll("#scan-card .tab").forEach(t =>
-      t.addEventListener("click", () => { st.tab = t.dataset.tab; st.error = null; st.errorAction = null; render(); }));
+      t.addEventListener("click", () => { st.tab = t.dataset.tab; st.error = null; st.errorAction = null; st.ocrText = null; render(); }));
     const ta = $("scan-text");
     if (ta) ta.addEventListener("input", e => {
       st.text = e.target.value;
@@ -415,8 +464,16 @@ window.Argus = window.Argus || {};
     if ($("fresh-btn")) $("fresh-btn").addEventListener("click", () => { st.result = null; analyze(true); });
     if ($("share-btn")) $("share-btn").addEventListener("click", shareResult);
     if ($("report-btn")) $("report-btn").addEventListener("click", reportResult);
+    if ($("ocr-reanalyze")) $("ocr-reanalyze").addEventListener("click", () => {
+      const t = ($("ocr-text").value || "").trim();
+      if (t.replace(/\s/g, "").length < 15) { Argus.app.toast("Add a bit more text to analyse"); return; }
+      st.tab = "text"; st.text = t; st.result = null; st.meta = null; st.ocrText = null;
+      st.imgB64 = st.imgType = st.imgPreview = null;
+      render(); analyze(false);
+    });
     if ($("reset-btn")) $("reset-btn").addEventListener("click", () => {
       st.result = null; st.meta = null; st.text = ""; st.imgB64 = st.imgType = st.imgPreview = null; st.error = null; st.errorAction = null;
+      st.ocrText = null; st.ocrConfidence = null; st.ocrPhase = false;
       render();
     });
   }
@@ -571,7 +628,7 @@ window.Argus = window.Argus || {};
           continue;
         }
         if (S.quotaLeft() <= 0) { row.status = "skipped"; S.audit(scanId, "THROTTLED", `Batch row ${i + 1}: quota ceiling`); continue; }
-        const { parsed, sources } = await Argus.engine.analyzePost({ text: row.snippet });
+        const { parsed, sources } = await Argus.engine.analyzePost({ text: row.snippet, fast: true });
         S.recordUsage();
         const ids = (parsed.extracted && parsed.extracted.identifiers) || FP.extractIdentifiers(row.snippet);
         const libHits = S.checkScamLibrary(row.snippet, ids);
@@ -585,12 +642,7 @@ window.Argus = window.Argus || {};
         S.audit(scanId, "MODEL_RESPONSE", `Batch row ${i + 1}: score ${parsed.trust_score}`);
       } catch (err) {
         row.status = "error";
-        const bmsg = String(err.message || "");
-        S.audit(scanId, "ERROR", `Batch row ${i + 1}: ${bmsg.slice(0, 120)}`);
-        if (err.code === "NO_KEY" || /api[ _]key (not valid|invalid|expired)|api_key_invalid/i.test(bmsg)) {
-          bst.cancel = true;
-          Argus.app.toast("Engine access key missing or invalid — fix it in Settings (⚙), then re-run the batch");
-        }
+        S.audit(scanId, "ERROR", `Batch row ${i + 1}: ${String(err.message || "").slice(0, 120)}`);
       }
       renderBatch();
     }

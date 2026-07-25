@@ -5,114 +5,26 @@ window.Argus = window.Argus || {};
 
 Argus.CONFIG = {
   APP_NAME: "Argonaut",
-  ENGINE: "Argus AI Engine",
-  VERSION: "3.0.0-beta",
-  /* Engine models — internal, never shown in UI. Google retires
-     model ids for new keys over time ("no longer available to new
-     users"), so the engine walks this list in order and remembers
-     the first id the key can use (settings.engineModel).
-     "gemini-flash-latest" is Google's rolling alias that always
-     points at the current Flash model — new keys should land there. */
-  MODEL_CANDIDATES: [
-    "gemini-flash-latest",       // rolling alias — preferred
-    "gemini-3-flash-preview",    // explicit current generation
-    "gemini-2.5-flash",          // legacy keys that still have access
-    "gemini-flash-lite-latest",  // lite tier — larger free quotas
-    "gemini-2.5-flash-lite",
-    "gemini-2.0-flash",
-  ],
-  ENGINE_LABEL: "Argus AI",    // white-label name shown in UI
-  ENDPOINT_FOR: function (model) {
-    return "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
-  },
-  DAILY_QUOTA: 3,                // free tier: 3 AI scans per user per day (duplicates stay free)
+  ENGINE: "Argus On-Device Intelligence",
+  VERSION: "4.0.0",
+  ENGINE_LABEL: "Argus AI",      // white-label name shown in UI
+  /* The verdict engine runs entirely in the browser (js/model.js).
+     There is no API, no key, and no per-scan cost — so analysis is
+     unlimited. The daily counter is retained only for on-device
+     usage telemetry; it never blocks a scan. */
+  DAILY_QUOTA: Infinity,
   SIMHASH_THRESHOLD: 10,         // max hamming distance for near-duplicate text (edited copies ≈7, unrelated ≈26)
   IMGHASH_THRESHOLD: 10,         // max hamming distance for perceptual image match
-  CONSENT_VERSION: 2,
+  CONSENT_VERSION: 3,
 };
 
-/* ── System prompt — Argus analysis engine ─────────────── */
-Argus.SYSTEM_PROMPT = `You are Argus, the AI job-post verification engine inside Argonaut (FakeCheck AI), built for the Indian job market. You analyze LinkedIn posts and WhatsApp-forwarded job messages to determine whether a job opportunity is genuine, suspicious, or a scam.
-
-You have two capabilities in every analysis:
-1. PATTERN ANALYSIS — detect fraud signals in the post itself
-2. CAREERS VERIFICATION — use the Google Search tool to check if the job actually exists on the company official careers page, Naukri, LinkedIn Jobs, Greenhouse, Lever, or Workday listings
-
-Always do both before responding. If search is unavailable, set verification status to INCONCLUSIVE.
-
-STEP 1 — EXTRACT JOB DETAILS
-From the post, extract: company name, job title/role, location, salary mentioned, contact method, poster name and claimed designation, application deadline. Also extract any phone numbers, UPI handles, or email addresses visible.
-
-STEP 2 — PATTERN ANALYSIS
-Scan for red flags and list each one with its severity and a one-line explanation tied to THIS specific post.
-
-HIGH SEVERITY RED FLAGS:
-- "Comment INTERESTED / YES / 1 below" or any engagement bait phrase
-- "DM me / WhatsApp me for details" with no formal application link
-- Personal WhatsApp number shared publicly
-- Unrealistic salary for zero-skill role (e.g. earn Rs 40000-100000/month, no experience)
-- Registration fee, security deposit, or training fee required
-- False urgency ("Only 10 seats left", "Hiring closes tonight")
-- Asking for Aadhaar, PAN, bank details upfront
-- MLM, referral chain, or "build your team" language
-- Company name slightly misspelled or suspiciously generic
-- Copy-paste job description with zero specific responsibilities
-
-MEDIUM SEVERITY RED FLAGS:
-- "Tag someone who needs a job" engagement farming
-- "Shortlisting is LIVE now" pressure tactics
-- No mention of team, department, or reporting structure
-- Suspiciously wide salary range for the same role
-- "Work from home" with no explanation of tools or workflow
-- Poster claims to be HR but profile shows less than 6 months at company
-- Zero comments from verified employees of the named company
-
-LOW SEVERITY RED FLAGS:
-- Poor grammar or spelling for a post claiming to be from a large MNC
-- No company logo or official branding visible
-- Generic job title with unusually high pay
-
-GREEN FLAGS that increase trust:
-- Official application link (careers.company.com, Greenhouse, Lever, Workday, Naukri company page)
-- Poster has long verified tenure at the company
-- Specific tech stack, team size, reporting manager title mentioned
-- Interview process clearly explained (rounds, timeline, location)
-- Company email domain mentioned (name@company.com, not Gmail/Yahoo)
-- Job matches a role visible on the company official careers page
-
-STEP 3 — CAREERS PAGE VERIFICATION
-Use Google Search to verify:
-1. Search "[Company Name] careers jobs [Job Title] 2026"
-2. Search "[Company Name] site:greenhouse.io OR site:lever.co OR site:workday.com"
-3. Search "[Company Name] jobs site:naukri.com OR site:linkedin.com/jobs"
-
-Set verification_status to: VERIFIED (exact role found, link available), PARTIALLY_VERIFIED (company real and hiring but exact role not found), NOT_FOUND (company exists but no matching listing anywhere), COMPANY_UNVERIFIED (cannot confirm company itself is real), or INCONCLUSIVE (careers page exists but could not be fully searched).
-
-STEP 4 — CLASSIFY VERDICT TYPE
-ENGAGEMENT_BAIT — job may be real but recruiter using spammy tactics to inflate post reach
-ACTUAL_SCAM — job does not exist or is designed to steal money or personal data
-LEGITIMATE — genuine job post with verifiable details
-SUSPICIOUS — cannot confirm either way
-
-STEP 5 — CALCULATE TRUST SCORE
-Start at 50. Adjust:
-Each HIGH red flag: -15 points
-Each MEDIUM red flag: -8 points
-Each LOW red flag: -3 points
-Each GREEN flag: +8 points
-VERIFIED: +25 | PARTIALLY_VERIFIED: +10 | NOT_FOUND: -18 | COMPANY_UNVERIFIED: -25 | INCONCLUSIVE: 0
-Cap between 0 and 100.
-
-STEP 6 — FALSE POSITIVE GUARD
-If the post has strong green flags (official link, verified recruiter, ATS listing) but also red flag language (e.g. "comment interested for referral"), do NOT mark it FAKE. Mark it ENGAGEMENT_BAIT. Reserve ACTUAL_SCAM only when financial fraud or data theft indicators are present.
-
-RESPOND ONLY WITH THIS JSON. NO PREAMBLE. NO MARKDOWN FENCES. NO EXTRA TEXT:
-
-{"trust_score":<0-100>,"verdict":"<FAKE|LIKELY_FAKE|SUSPICIOUS|LIKELY_REAL|REAL>","verdict_type":"<ACTUAL_SCAM|ENGAGEMENT_BAIT|SUSPICIOUS|LEGITIMATE>","confidence":"<HIGH|MEDIUM|LOW>","summary":"<2-3 sentences plain English summary>","extracted":{"company":"<name or null>","role":"<title or null>","location":"<location or null>","salary":"<salary or null>","contact_method":"<how to apply>","poster":"<name and role>","identifiers":{"phones":["<numbers found>"],"upi":["<upi handles found>"],"emails":["<emails found>"]}},"verification":{"status":"<VERIFIED|PARTIALLY_VERIFIED|NOT_FOUND|COMPANY_UNVERIFIED|INCONCLUSIVE>","careers_url":"<URL or null>","detail":"<one sentence on what you found>"},"red_flags":[{"flag":"<short name>","severity":"<HIGH|MEDIUM|LOW>","explanation":"<one sentence specific to this post>"}],"green_flags":[{"flag":"<short name>","explanation":"<one sentence specific to this post>"}],"recommendation":"<one direct sentence telling the job seeker what to do>","report_note":"<one sentence for if this result seems wrong>"}`;
-
-/* ── Panic-button deep check prompt ─────────────────────── */
-Argus.LINK_CHECK_PROMPT = `You are a security analyst. The user received an interview or meeting link during a job application in India. Using Google Search if helpful, assess whether this link/domain is a legitimate interview channel or a phishing/scam setup. Respond ONLY with JSON, no fences:
-{"level":"<SAFE|CAUTION|DANGER>","headline":"<one short sentence verdict>","reasons":["<reason 1>","<reason 2>"],"advice":"<one sentence telling the user what to do>"}`;
+/* ── Analysis logic lives on-device in js/model.js ──────────
+   The fraud rubric that used to be an LLM system prompt is now
+   implemented directly as the Argus ensemble model: entity
+   extraction + six calibrated sub-detectors (financial fraud,
+   data-harvest, engagement bait, compensation sanity, legitimacy,
+   linguistic spam) pooled into a 0–100 trust score. No prompt,
+   no provider, no network. See js/model.js for the full pipeline. */
 
 /* ── Interview panic button — local heuristics ──────────── */
 Argus.TRUSTED_MEET_DOMAINS = [
@@ -175,7 +87,7 @@ Argus.LEARN_MODULES = [
     body:"Scammers harvest Aadhaar, PAN, and bank details through fake onboarding forms — then use them for benami accounts, SIM fraud, and loan fraud in your name. A real employer collects KYC documents only AFTER a formal offer, through official HR systems, never over WhatsApp.",
     tips:["Never share Aadhaar/PAN before a written offer on company letterhead","KYC happens on official HRMS portals, not Google Forms","Use the Applicant Vault to track exactly what you shared and where"] },
   { icon:"🕵️", title:"Verifying a Recruiter in 90 Seconds",
-    body:"Three checks defeat most fakes: (1) The poster's profile — real recruiters show 1+ years tenure and consistent history at the company. (2) The email domain — name@company.com, never Gmail/Yahoo/Outlook. (3) The careers page — the exact role should exist on the company's official site or its ATS. Argonaut automates check #3 with live web verification.",
+    body:"Three checks defeat most fakes: (1) The poster's profile — real recruiters show 1+ years tenure and consistent history at the company. (2) The email domain — name@company.com, never Gmail/Yahoo/Outlook. (3) The careers page — the exact role should exist on the company's official site or its ATS. Argonaut flags whether an official application link is present and prompts you to confirm it directly.",
     tips:["Cross-check the recruiter on the company's LinkedIn 'People' tab","Official domains only — hr.company@gmail.com is disqualifying","Run the post through the Argonaut scanner before applying"] },
   { icon:"📱", title:"WhatsApp-Forward Job Scams",
     body:"Forwarded 'openings' with a personal number are the highest-risk category Argonaut tracks. They combine urgency ('only 5 seats'), unrealistic pay, and personal contact channels — engineered to move you off-platform where there's no moderation or paper trail.",
@@ -200,11 +112,11 @@ Argus.QUIZ = [
 /* Earth-toned status palette — CVD-validated on the light surface
    (worst adjacent-pair ΔE 12.7 under deutan simulation, ≥12 target) */
 Argus.VERIF_CFG = {
-  VERIFIED:           { icon:"✅", color:"#4d6a38", bg:"rgba(77,106,56,.07)",   border:"rgba(77,106,56,.28)",  label:"Verified on official careers page" },
-  PARTIALLY_VERIFIED: { icon:"🔍", color:"#5d7a45", bg:"rgba(93,122,69,.06)",   border:"rgba(93,122,69,.25)",  label:"Company verified — exact role not listed" },
-  NOT_FOUND:          { icon:"⚠️", color:"#9c4a10", bg:"rgba(156,74,16,.07)",   border:"rgba(156,74,16,.28)",  label:"Job not found on any careers page" },
-  COMPANY_UNVERIFIED: { icon:"❌", color:"#a03c2c", bg:"rgba(160,60,44,.06)",   border:"rgba(160,60,44,.28)",  label:"Company could not be verified" },
-  INCONCLUSIVE:       { icon:"❓", color:"#8a7a63", bg:"rgba(160,140,114,.08)", border:"rgba(160,140,114,.3)", label:"Could not determine from search results" },
+  VERIFIED:           { icon:"✅", color:"#4d6a38", bg:"rgba(77,106,56,.07)",   border:"rgba(77,106,56,.28)",  label:"Recognised employer + official link" },
+  PARTIALLY_VERIFIED: { icon:"🔍", color:"#5d7a45", bg:"rgba(93,122,69,.06)",   border:"rgba(93,122,69,.25)",  label:"Official application link detected" },
+  NOT_FOUND:          { icon:"⚠️", color:"#9c4a10", bg:"rgba(156,74,16,.07)",   border:"rgba(156,74,16,.28)",  label:"No official listing detected" },
+  COMPANY_UNVERIFIED: { icon:"❌", color:"#a03c2c", bg:"rgba(160,60,44,.06)",   border:"rgba(160,60,44,.28)",  label:"Company not in recognised registry" },
+  INCONCLUSIVE:       { icon:"❓", color:"#8a7a63", bg:"rgba(160,140,114,.08)", border:"rgba(160,140,114,.3)", label:"No official link — verify directly" },
 };
 Argus.VTYPE_CFG = {
   ACTUAL_SCAM:     { icon:"🚨", color:"#a03c2c", label:"Actual Scam"     },

@@ -1,0 +1,35 @@
+# ═══════════════════════════════════════════════════════════
+#  Argonaut — files that must NEVER reach GitHub
+# ═══════════════════════════════════════════════════════════
+
+# ── SECRETS (bot token, admin key) ──────────────────────────
+.env
+.env.*
+!.env.example
+server/.env
+
+# ── DEPENDENCIES (thousands of files, reinstalled with npm i)
+node_modules/
+server/node_modules/
+
+# ── USER DATA (real people's scans + feedback labels) ───────
+data/
+server/data/
+
+# ── Python build artefacts ──────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ── Scratch / local-only ────────────────────────────────────
+_vidtmp/
+*.log
+.claude/settings.local.json
+
+# ── OS + editor noise (OneDrive folder, so expect these) ────
+Thumbs.db
+desktop.ini
+.DS_Store
+*.tmp
+~$*

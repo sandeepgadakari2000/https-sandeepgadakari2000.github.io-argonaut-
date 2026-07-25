@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Argonaut — AI-Powered Job Verification for India</title>
-<meta name="description" content="Argonaut verifies LinkedIn and WhatsApp job posts with the Argus AI engine — live careers-page verification, duplicate fingerprinting, and a community scam library. India-first fraud intelligence.">
+<meta name="description" content="Argonaut verifies LinkedIn and WhatsApp job posts with the on-device Argus model — fraud-signal analysis, duplicate fingerprinting, and a community scam library. Private by design: nothing leaves your browser.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23FDF6EC'/><path d='M8 32Q32 12 56 32Q32 52 8 32Z' fill='%23fff' stroke='%238B5A2B' stroke-width='3'/><circle cx='32' cy='32' r='11' fill='%23B87333'/><circle cx='32' cy='32' r='5' fill='%232B2118'/></svg>">
 <script>
 /* ── Boot loader ──────────────────────────────────────────
@@ -13,14 +13,14 @@
    Scripts are injected with async=false, which guarantees
    in-order execution. Vendor libs (three.js + GSAP, shipped
    locally for the landing experience) load first. */
-window.APP_BUILD = "2026.07.20-1";
+window.APP_BUILD = "2026.07.24-7";
 (function (b) {
   var css = document.createElement("link");
   css.rel = "stylesheet";
   css.href = "css/style.css?b=" + b;
   document.head.appendChild(css);
   ["vendor/three.min", "vendor/gsap.min",
-   "config", "fingerprint", "store", "engine", "charts", "scanner", "views", "landing", "app"]
+   "config", "fingerprint", "store", "model-weights", "model", "engine", "ocr", "charts", "scanner", "views", "landing", "app"]
     .forEach(function (name) {
       var s = document.createElement("script");
       s.src = "js/" + name + ".js?b=" + b;
@@ -28,6 +28,26 @@ window.APP_BUILD = "2026.07.20-1";
       document.head.appendChild(s);
     });
 })(window.APP_BUILD);
+</script>
+
+<!-- ── Optional visitor analytics (owner-only) ───────────────
+     Cloudflare Web Analytics: cookieless, collects NO personal data,
+     and reports only anonymous page views (fits the on-device / DPDP
+     promise). Results are visible ONLY to you in your Cloudflare
+     dashboard — never to visitors.
+     To enable: sign up free at dash.cloudflare.com → Web Analytics →
+     "Add a site", copy the token it gives you, paste it below, and
+     redeploy. Leave it "" to keep the app 100% no-tracking. -->
+<script>
+window.CF_BEACON_TOKEN = "";
+(function (t) {
+  if (!t) return;
+  var s = document.createElement("script");
+  s.defer = true;
+  s.src = "https://static.cloudflareinsights.com/beacon.min.js";
+  s.setAttribute("data-cf-beacon", JSON.stringify({ token: t }));
+  document.head.appendChild(s);
+})(window.CF_BEACON_TOKEN);
 </script>
 </head>
 <body>
@@ -271,13 +291,13 @@ window.APP_BUILD = "2026.07.20-1";
         ARGONAUT <span style="color:var(--ink-3);font-weight:400;font-size:12px">· Argus AI Engine</span>
       </div>
       <div style="display:flex;gap:16px;font-size:12px;color:var(--ink-3);flex-wrap:wrap">
-        <span>Argus AI · search-grounded</span><span>On-device intelligence</span>
+        <span>Argus AI · on-device model</span><span>Privacy-first · no data leaves your browser</span>
       </div>
     </div>
     <div class="f-disc">
       <b>Algorithmic disclaimer:</b> Argonaut produces probabilistic trust scores and safety advisories — not legal declarations of criminal activity or definitive statements about any person or company. False positives and negatives are possible; every result includes a reporting path. Verify independently before making decisions.
       <br><br>
-      <b>Privacy (DPDP Act 2023):</b> Analysis runs with your itemized, withdrawable consent. Scans, fingerprints, the vault, and audit trails live only in this browser. Content unknown to the local cache is processed by Argonaut's secure third-party AI infrastructure solely for fraud analysis — never for advertising or model training. Export or erase everything anytime in Settings. Report financial fraud at <a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a>.
+      <b>Privacy (DPDP Act 2023):</b> Analysis runs with your itemized, withdrawable consent. Every scan is processed entirely on your device by the on-device Argus model — no server, no third party, no API. Scans, fingerprints, the vault, and audit trails live only in this browser and are never uploaded or used for advertising or model training. Export or erase everything anytime in Settings. Report financial fraud at <a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a>.
     </div>
   </div>
 </footer>

@@ -26,39 +26,26 @@ Argus.charts = (function () {
   }
   function hideTip() { if (tipEl) tipEl.style.opacity = "0"; }
 
-  /* ── Trust score gauge ──────────────────────────────── */
+  /* ── Trust score gauge — circular ring ──────────────────
+     A full-ring radial gauge: the ring fills clockwise from the top
+     to the score, and its colour signals trust (terracotta = scam,
+     sage = legit). Symmetric and clip-proof at every score. */
   function gauge(score) {
     const s = Argus.scoreStyle(score);
-    const r = 64, cx = 88, cy = 76;
     const pct = Math.min(100, Math.max(0, score));
-    const rad = (180 - (pct / 100) * 180) * (Math.PI / 180);
-    const ex = cx + r * Math.cos(rad), ey = cy - r * Math.sin(rad);
-    const nx = cx + 50 * Math.cos(rad), ny = cy - 50 * Math.sin(rad);
-    const fill = pct >= 100
-      ? `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`
-      : `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+    const cx = 68, cy = 68, r = 54, sw = 11;
+    const C = 2 * Math.PI * r;
+    const offset = (C * (1 - pct / 100)).toFixed(2);
     return `
-    <svg width="176" height="108" viewBox="0 0 176 108" style="flex-shrink:0">
-      <defs>
-        <linearGradient id="ag-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#a03c2c"/><stop offset="32%" stop-color="#9c4a10"/>
-          <stop offset="60%" stop-color="#b3892e"/><stop offset="100%" stop-color="#4d6a38"/>
-        </linearGradient>
-      </defs>
-      <path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}" fill="none"
-        stroke="rgba(140,106,63,0.18)" stroke-width="11" stroke-linecap="round"/>
-      ${pct > 0 ? `<path d="${fill}" fill="none" stroke="url(#ag-grad)" stroke-width="11"
-        stroke-linecap="round"/>` : ""}
-      <line x1="${cx}" y1="${cy}" x2="${nx.toFixed(2)}" y2="${ny.toFixed(2)}"
-        stroke="${s.color}" stroke-width="2.5" stroke-linecap="round"/>
-      <circle cx="${cx}" cy="${cy}" r="5" fill="${s.color}"/>
-      <circle cx="${cx}" cy="${cy}" r="2" fill="#fbf9f5"/>
-      <text x="${cx - r - 4}" y="${cy + 16}" text-anchor="end" fill="rgba(110,92,72,0.55)" font-size="9" font-family="Inter,sans-serif">FAKE</text>
-      <text x="${cx + r + 4}" y="${cy + 16}" text-anchor="start" fill="rgba(110,92,72,0.55)" font-size="9" font-family="Inter,sans-serif">REAL</text>
-      <text x="${cx}" y="${cy + 17}" text-anchor="middle" fill="${s.color}" font-size="27"
+    <svg width="136" height="136" viewBox="0 0 136 136" style="flex-shrink:0" role="img" aria-label="Trust score ${score} out of 100">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(140,106,63,0.15)" stroke-width="${sw}"/>
+      ${pct > 0 ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${sw}"
+        stroke-linecap="round" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${offset}"
+        transform="rotate(-90 ${cx} ${cy})"/>` : ""}
+      <text x="${cx}" y="${cy + 1}" text-anchor="middle" fill="${s.color}" font-size="36"
         font-family="'JetBrains Mono',monospace" font-weight="700">${score}</text>
-      <text x="${cx}" y="${cy + 31}" text-anchor="middle" fill="rgba(110,92,72,0.6)" font-size="8"
-        font-family="Inter,sans-serif" letter-spacing="2.5">TRUST SCORE</text>
+      <text x="${cx}" y="${cy + 20}" text-anchor="middle" fill="rgba(110,92,72,0.62)" font-size="8"
+        font-family="Inter,sans-serif" letter-spacing="2">TRUST SCORE</text>
     </svg>`;
   }
 

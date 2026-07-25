@@ -268,10 +268,75 @@ Argus.store = (function () {
   }
 
   /* ── DPDP data rights ───────────────────────────────── */
+  /* A plain-text, human-readable report of ONLY the user's own data
+     (portability under the DPDP Act). Deliberately NOT JSON — reads
+     like a document, not code. No internal keys, hashes, or seed data. */
   function exportAll() {
-    const dump = {};
-    for (const key of Object.values(K)) dump[key] = get(key, null);
-    return JSON.stringify(dump, null, 2);
+    const fdate = ts => ts ? new Date(ts).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+    const consent = get(K.consent, null);
+    const scans = get(K.scans, []) || [];
+    const vault = get(K.vault, []) || [];
+    const reports = (get(K.scamlib, []) || []).filter(e => !e.seeded);
+    const learn = get(K.learn, { done: [], quizBest: null });
+    const line = "──────────────────────────────────────────────";
+
+    const L = [];
+    L.push("ARGONAUT — YOUR DATA EXPORT");
+    L.push(line);
+    L.push("Generated: " + fdate(Date.now()));
+    L.push("");
+    L.push("This document contains only your own data, stored on this");
+    L.push("device, provided under the DPDP Act 2023 (right to data");
+    L.push("portability). It contains no app code.");
+    L.push("");
+
+    L.push("CONSENT");
+    L.push(line);
+    if (consent) {
+      L.push("  Analysis consent : " + (consent.accepted ? "Granted" : "Declined"));
+      L.push("  Date             : " + fdate(consent.ts));
+      L.push("  Anonymous telemetry: " + (consent.telemetry ? "On" : "Off"));
+    } else L.push("  No consent recorded.");
+    L.push("");
+
+    L.push("SCANS YOU RAN (" + scans.length + ")");
+    L.push(line);
+    if (scans.length) scans.forEach((s, i) => {
+      const r = s.result || {};
+      L.push("  " + (i + 1) + ". " + fdate(s.ts));
+      L.push("     Trust score : " + (r.trust_score != null ? r.trust_score + "/100" : "—") + "   Verdict: " + String(r.verdict_type || "—").replace(/_/g, " "));
+      if (r.extracted && r.extracted.company) L.push("     Company     : " + r.extracted.company);
+      if (s.snippet) L.push("     Post        : " + String(s.snippet).replace(/\s+/g, " ").slice(0, 120));
+      L.push("");
+    });
+    else { L.push("  No scans yet."); L.push(""); }
+
+    L.push("APPLICATIONS YOU LOGGED (" + vault.length + ")");
+    L.push(line);
+    if (vault.length) vault.forEach((v, i) => {
+      L.push("  " + (i + 1) + ". " + v.company + (v.role ? " — " + v.role : ""));
+      L.push("     Data you shared: " + ((v.shared || []).join(", ") || "none logged"));
+      L.push("     Date           : " + fdate(v.ts));
+      L.push("");
+    });
+    else { L.push("  None logged."); L.push(""); }
+
+    L.push("SCAM IDENTIFIERS YOU REPORTED (" + reports.length + ")");
+    L.push(line);
+    if (reports.length) reports.forEach((e, i) => {
+      L.push("  " + (i + 1) + ". " + e.type + ": " + e.value + (e.note ? "   (" + e.note + ")" : ""));
+    });
+    else L.push("  None reported.");
+    L.push("");
+
+    L.push("LEARNING PROGRESS");
+    L.push(line);
+    L.push("  Modules completed   : " + (learn.done || []).length);
+    L.push("  Best simulator score: " + (learn.quizBest != null ? learn.quizBest : "—"));
+    L.push("");
+    L.push(line);
+    L.push("Argonaut · AI Job Verification · Report fraud at cybercrime.gov.in");
+    return L.join("\r\n");
   }
   function eraseAll() {
     for (const key of Object.values(K)) localStorage.removeItem(key);

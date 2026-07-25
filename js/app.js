@@ -111,12 +111,12 @@ window.Argus = window.Argus || {};
   /* ═══ DPDP CONSENT ═════════════════════════════════════ */
   function openConsent() {
     openModal(`
-      <h3>🇮🇳 Your data, your consent</h3>
-      <div class="m-sub">Under the Digital Personal Data Protection Act, 2023, Argonaut asks for itemized, withdrawable consent before processing anything. Purpose limitation is hardcoded — your data is used for fraud analysis only, never for advertising or third-party model training.</div>
+      <h3>Your data, your consent</h3>
+      <div class="m-sub">Under the Digital Personal Data Protection Act, 2023, Argonaut asks for itemized, withdrawable consent before processing anything. Purpose limitation is hardcoded — your data is used for fraud analysis only, never for advertising or model training.</div>
       <div class="glass-flat" style="padding:14px 16px;border-radius:12px;margin-bottom:10px;font-size:13px;line-height:1.6">
         <label style="display:flex;gap:10px;cursor:pointer;align-items:flex-start">
           <input type="checkbox" id="c-required" style="accent-color:#6d7cff;margin-top:3px"/>
-          <span><b>Required — Analysis processing.</b> Posts and screenshots you submit are fingerprinted on this device; content unknown to the cache is sent to Argonaut's secure third-party AI processing service solely to generate a fraud analysis. Results and fingerprints are stored only in this browser.</span>
+          <span><b>Required — On-device analysis.</b> Posts and screenshots you submit are analysed entirely inside this browser by the on-device Argus model. Nothing is uploaded — no server, no third party. Results and fingerprints are stored only on this device.</span>
         </label>
       </div>
       <div class="glass-flat" style="padding:14px 16px;border-radius:12px;margin-bottom:18px;font-size:13px;line-height:1.6">
@@ -142,7 +142,6 @@ window.Argus = window.Argus || {};
       });
       closeModal();
       toast("Consent recorded — you're protected. Withdraw anytime in Settings.");
-      if (!Argus.engine.hasKey()) openSettings(true);
     });
     document.getElementById("c-decline").addEventListener("click", () => {
       S.setConsent({ accepted: false, version: Argus.CONFIG.CONSENT_VERSION, ts: Date.now() });
@@ -151,21 +150,21 @@ window.Argus = window.Argus || {};
   }
 
   /* ═══ SETTINGS ═════════════════════════════════════════ */
-  function openSettings(firstRun) {
-    const s = S.getSettings();
+  function openSettings() {
     const consent = S.getConsent();
     openModal(`
       <h3>⚙ Settings</h3>
-      <div class="m-sub">${firstRun ? "One last step — Argus needs an engine access key to run AI analysis. It's free." : "Engine configuration and your DPDP data rights."}</div>
+      <div class="m-sub">Engine status and your DPDP data rights.</div>
 
-      <label class="f-label">Engine access key</label>
-      <input class="input-text" id="set-key" type="password" placeholder="Paste your access key…" value="${esc(s.apiKey || "")}" autocomplete="off" style="margin-bottom:6px"/>
-      <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:16px;line-height:1.6">
-        Create a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> — create it yourself and paste it here. The key is stored only in this browser and used only for analysis requests. Engine: <span class="mono">${Argus.CONFIG.ENGINE_LABEL} · search-grounded</span>.
-      </div>
-
-      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:16px">
-        Free tier: <b style="color:var(--ink)">${Argus.CONFIG.DAILY_QUOTA} AI scans per day</b> — duplicate-detection lookups stay unlimited.
+      <div class="glass-flat" style="padding:15px 17px;border-radius:12px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
+          <span style="font-weight:700;font-size:14px;color:var(--ink)">${esc(Argus.CONFIG.ENGINE_LABEL)} Engine</span>
+          <span class="chip good">On-device · Active</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--ink-2);line-height:1.6">
+          Runs entirely in this browser — <b>no account, no API key, nothing to configure.</b> Every scan is analysed locally by the ${esc(Argus.CONFIG.ENGINE)} model, so your job posts never leave this device. Unlimited scans, always free.
+        </div>
+        <div style="font-size:11px;color:var(--ink-3);margin-top:8px">Model: <span class="mono">${esc(Argus.model.VERSION)}</span></div>
       </div>
 
       <div class="card-label" style="margin-top:6px">🛡 DPDP Data Rights</div>
@@ -179,43 +178,23 @@ window.Argus = window.Argus || {};
       </div>
 
       <div style="display:flex;gap:10px">
-        <button class="btn-primary btn-sm" id="set-save" style="flex:1">Save settings</button>
-        <button class="btn-ghost btn-sm" id="set-close">Close</button>
+        <button class="btn-primary btn-sm" id="set-close" style="flex:1">Done</button>
       </div>
     `);
     const $ = id => document.getElementById(id);
-    $("set-save").addEventListener("click", () => {
-      const st = S.getSettings();
-      st.apiKey = $("set-key").value.trim();
-      S.setSettings(st);
-      closeModal();
-      if (!st.apiKey) { toast("Saved — add an engine access key to enable AI scans"); return; }
-      // No format assumptions (AI Studio issues AIza… and AQ.… keys) —
-      // verify with a real engine round-trip instead.
-      toast("Saved — verifying your engine key…");
-      Argus.engine.validateKey(st.apiKey).then(v => {
-        if (v.ok) toast("Key verified — Argus is armed 🔍");
-        else if (v.reason === "rejected")
-          toast("Saved, but the AI service rejected this key — re-copy the full key from Google AI Studio.");
-        else if (v.reason === "network")
-          toast("Saved — can't verify the key while offline. It will be checked on your first scan.");
-        else
-          toast("Saved — the AI service couldn't confirm the key right now. It will be checked on your first scan.");
-      });
-    });
     $("set-close").addEventListener("click", closeModal);
     $("set-export").addEventListener("click", () => {
-      const blob = new Blob([S.exportAll()], { type: "application/json" });
+      const blob = new Blob([S.exportAll()], { type: "text/plain;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "argonaut-data-export.json";
+      a.download = "argonaut-my-data.txt";
       a.click();
       URL.revokeObjectURL(a.href);
-      toast("Full data export downloaded");
+      toast("Your data downloaded — open it in Notepad to read");
     });
     $("set-consent").addEventListener("click", () => { closeModal(); openConsent(); });
     $("set-erase").addEventListener("click", () => {
-      if (confirm("Erase ALL Argonaut data on this device — scans, ledger, vault, audit trail, settings and API key? This cannot be undone.")) {
+      if (confirm("Erase ALL Argonaut data on this device — scans, ledger, vault, audit trail and settings? This cannot be undone.")) {
         S.eraseAll();
         closeModal();
         toast("All local data erased (DPDP right to erasure)");
@@ -295,12 +274,11 @@ window.Argus = window.Argus || {};
 
   function openPanic() {
     openModal(`
-      <h3>🚨 Interview Panic Button</h3>
-      <div class="m-sub">About to join an interview call, open a document, or click a link — and something feels off? Paste it. Argonaut checks the channel instantly, on-device.</div>
+      <h3>Interview Panic Button</h3>
+      <div class="m-sub">About to join an interview call, open a document, or click a link — and something feels off? Paste it. Argonaut checks the channel instantly, entirely on-device.</div>
       <input class="input-text" id="panic-input" placeholder="e.g. zoom-meeting-hr.live/join/8842 or hr@company-careers.top"/>
-      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-        <button class="btn-primary btn-sm" id="panic-check" style="flex:1">⚡ Instant check</button>
-        <button class="btn-ghost btn-sm" id="panic-deep" style="flex:1" title="Uses one AI scan">🔬 AI deep check</button>
+      <div style="margin-top:14px">
+        <button class="btn-primary btn-sm" id="panic-check" style="width:100%">Check this link</button>
       </div>
       <div id="panic-result"></div>
     `);
@@ -326,28 +304,13 @@ window.Argus = window.Argus || {};
           ${(extraSources || []).length ? `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--neutral-border)">${extraSources.map(s => `<a href="${esc(s.uri)}" target="_blank" rel="noopener" style="display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">↗ ${esc(s.title)}</a>`).join("")}</div>` : ""}
         </div>`;
     };
-    $("panic-check").addEventListener("click", () => {
+    const run = () => {
       const v = checkLink($("panic-input").value);
       if (!v) { toast("Paste a link or domain first"); return; }
       renderVerdict(v);
-    });
-    $("panic-deep").addEventListener("click", async () => {
-      const input = $("panic-input").value.trim();
-      if (!input) { toast("Paste a link or domain first"); return; }
-      if (!S.hasConsent()) { closeModal(); openConsent(); return; }
-      if (S.quotaLeft() <= 0) { toast("Daily AI quota reached — instant check still works"); return; }
-      $("panic-result").innerHTML = `<div style="margin-top:16px;display:flex;gap:10px;align-items:center;color:var(--ink-2);font-size:13px"><span class="spinner"></span> Argus is investigating the domain…</div>`;
-      try {
-        const { parsed, sources } = await Argus.engine.deepCheckLink(input);
-        S.recordUsage();
-        renderVerdict({ level: parsed.level, headline: parsed.headline, reasons: (parsed.reasons || []).map(m => ({ t: "warn", m })), advice: parsed.advice }, sources);
-      } catch (err) {
-        const pmsg = /api[ _]key (not valid|invalid|expired)|api_key_invalid/i.test(String(err.message))
-          ? "Your engine access key was rejected — open Settings (⚙) and paste a fresh key from Google AI Studio."
-          : err.message;
-        $("panic-result").innerHTML = `<div style="margin-top:16px;font-size:13px;color:var(--crit-strong)">⚠ ${esc(pmsg)}</div>`;
-      }
-    });
+    };
+    $("panic-check").addEventListener("click", run);
+    $("panic-input").addEventListener("keydown", e => { if (e.key === "Enter") run(); });
     setTimeout(() => $("panic-input").focus(), 60);
   }
 
@@ -599,7 +562,7 @@ window.Argus = window.Argus || {};
     if (S.getConsent() === null) setTimeout(openConsent, 900);
   }
 
-  Argus.app = { go, route, toast, copyText, openConsent, openSettings, openPanic, closeModal };
+  Argus.app = { go, route, toast, copyText, openConsent, openSettings, openPanic, closeModal, analyzeLink: checkLink };
   // Scripts are injected by the boot loader with async=false, so they may
   // execute after DOMContentLoaded has already fired — guard both paths.
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
