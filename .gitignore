@@ -16,6 +16,13 @@ server/.env
 /*token*
 /*secret*
 
+# ── MOVED OUT (this repo is PUBLIC and GitHub Pages serves every
+#    file in it verbatim — see the note in README). The training
+#    pipeline and the bot backend now live in the sibling folder
+#    "Argonaut-Private/" so they are never published again.
+ml/
+server/
+
 # ── DEPENDENCIES (thousands of files, reinstalled with npm i)
 node_modules/
 server/node_modules/
